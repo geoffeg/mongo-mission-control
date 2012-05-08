@@ -1,0 +1,91 @@
+<div style="width:100%;" id="mongo-stats-header">
+	<div id="updatetime" class="host-header"></div>
+</div>
+
+<div id="mongo-status-table">
+	<div id="mongo-stats-column-labels" class="host-column">
+		Repl Lag<BR/>
+		<div class="header-parent">Operations</div>
+		Inserts<BR/>
+		Queries<BR/>
+		Updates<BR/>
+		Deletes<BR/>
+		Getmore<BR/>
+		<div class="header-parent">Queues</div>
+		Readers<BR/>
+		Writers<BR/>
+		Total<BR/>
+		<div class="header-parent">Clients</div>
+		Readers<BR/>
+		Writers<BR/>
+		Total<BR/>
+		<div class="header-parent">Network</div>
+		Bytes In<BR/>
+		Bytes Out<BR/>
+		<div class="header-parent">Connections</div>
+		Active<BR/>
+		Available<BR/>
+		<div class="header-parent">Flushes</div>
+		Last<BR/>
+		Average<BR/>
+		<div class="header-parent">Memory</div>
+		Resident<BR/>
+		Virtual<BR/>
+		Mapped<BR/>
+		Page Faults<BR/>
+		Lock Ratio
+	</div>
+</div>
+
+<script id="hostHeaderTemplate" type="text/x-handlebars-template">
+	<div id="host-header-{{getCssHostName host}}" class="host-header">
+		{{cleanHostName currentValues.serverStatus.host}}<BR/>
+		{{currentValues.replicaSet.stateStr}}
+		<img src="images/icon_clock.gif" class="slow-server"/>
+		<div class="qtip-content">
+			<TABLE>
+				<TR><TD>Version</TD><TD>{{currentValues.serverStatus.version}}</TD></TR>
+				<TR><TD>Uptime</TD><TD>{{currentValues.serverStatus.uptime}}</TD></TR>
+				<TR><TD>Votes</TD><TD>0</TD></TR>
+				<TR><TD>Priority</TD><TD>0</TD></TR>
+				<TR><TD>Tags</TD><TD>NJ, FIO</TD></TR>
+			</TABLE>
+		</div>
+	</div>
+</script>
+
+<script id="statusTemplate" type="text/x-handlebars-template">
+	<div id="host-column-{{getCssHostName host}}" class="host-column">
+		{{#if currentValues.replicationLag}}{{currentValues.replicationLag}} secs{{else}}0 secs{{/if}}<BR/>
+		&nbsp;<BR/>
+		{{#if currentValues.serverStatus.opcounters}}{{getDiffVals currentValues.serverStatus.opcounters.insert previousValues.serverStatus.opcounters.insert previousValues.lastUpdate}}{{else}}&nbsp;{{/if}}<BR/>
+		{{#if currentValues.serverStatus.opcounters}}{{getDiffVals currentValues.serverStatus.opcounters.query previousValues.serverStatus.opcounters.query previousValues.lastUpdate}}{{else}}&nbsp;{{/if}}<BR/>
+		{{#if currentValues.serverStatus.opcounters}}{{getDiffVals currentValues.serverStatus.opcounters.update previousValues.serverStatus.opcounters.update previousValues.lastUpdate}}{{else}}&nbsp;{{/if}}<BR/>
+		{{#if currentValues.serverStatus.opcounters}}{{getDiffVals currentValues.serverStatus.opcounters.delete previousValues.serverStatus.opcounters.delete previousValues.lastUpdate}}{{else}}&nbsp;{{/if}}<BR/>
+		{{#if currentValues.serverStatus.opcounters}}{{getDiffVals currentValues.serverStatus.opcounters.getmore previousValues.serverStatus.opcounters.getmore previousValues.lastUpdate}}{{else}}&nbsp;{{/if}}<BR/>
+		&nbsp;<BR/>
+		{{currentValues.serverStatus.globalLock.currentQueue.readers}}<BR/>
+		{{currentValues.serverStatus.globalLock.currentQueue.writers}}<BR/>
+		{{currentValues.serverStatus.globalLock.currentQueue.total}}<BR/>
+		&nbsp;<BR/>
+		{{currentValues.serverStatus.globalLock.activeClients.readers}}<BR/>
+		{{currentValues.serverStatus.globalLock.activeClients.writers}}<BR/>
+		{{currentValues.serverStatus.globalLock.activeClients.total}}<BR/>
+		&nbsp;<BR/>
+		{{getGaugeVal currentValues.serverStatus.network.bytesIn previousValues.serverStatus.network.bytesIn previousValues.lastUpdate}} K/sec<BR/>
+		{{getGaugeVal currentValues.serverStatus.network.bytesOut previousValues.serverStatus.network.bytesOut previousValues.lastUpdate}} K/sec<BR/>
+		&nbsp;<BR/>
+		{{currentValues.serverStatus.connections.current}}<BR/>
+		{{currentValues.serverStatus.connections.available}}<BR/>
+		&nbsp;<BR/>
+		{{currentValues.serverStatus.backgroundFlushing.last_ms}} ms<BR/>
+		{{sprintf "%3.2f" currentValues.serverStatus.backgroundFlushing.average_ms}} ms<BR/>
+		&nbsp;<BR/>
+		{{currentValues.serverStatus.mem.resident}} MB<BR/>
+		{{currentValues.serverStatus.mem.virtual}} MB<BR/>
+		{{currentValues.serverStatus.mem.mapped}} MB<BR/>
+		{{getDiffVals currentValues.serverStatus.extra_info.page_faults previousValues.serverStatus.extra_info.page_faults previousValues.lastUpdate}}<BR/>
+		{{getLockRatio currentValues.serverStatus.globalLock.lockTime previousValues.serverStatus.globalLock.lockTime currentValues.serverStatus.globalLock.totalTime previousValues.serverStatus.globalLock.totalTime}}%<BR/>
+	</div>
+</script>
+
