@@ -24,8 +24,13 @@ Sample HTML:
 
 */
 
+var workers = [];
 var activeHosts = {};
 var numHosts = 0;
+
+var contracts=[];
+var hides=[];
+var newEdits=true;
 
 function addReplicaSet(config) {
 	getReplicaSetStatus(config['host'], addServer);
@@ -42,8 +47,9 @@ function addServer(config) {
 	
 	numHosts++;
 	addCol($('#stats'));
-	var widthPerc = Math.floor(100/(numHosts+1));
-	$('#spanStyle').html('div div span { width: '+widthPerc+'%; }');
+	var firstWidthPerc = Math.floor(120/(numHosts+1.2));
+	var restWidthPerc = Math.floor(100/(numHosts+1));
+	$('#spanStyle').html('div>div>span:first-child { width: '+firstWidthPerc+'%; } div>div>span:not(:first-child) { width: '+restWidthPerc+'%; }');
 	
 	
 	activeHosts[config.host] = "active";
@@ -94,34 +100,47 @@ function addServer(config) {
 		action: 'serverStatus',
 		args: []
 	}));
-	return worker;
+	
+	workers[workers.length] = worker;
 }
 
 function addRow(parentId, key, level) {
-	// Add a new row
-	ensureLevel(level);
-	var title=key.charAt(0).toUpperCase() + key.slice(1);// First letter to upper case
-	var id=parentId.slice(1)+'_'+key;
-	var inside='<span><span class="level_'+level+'">'+title+'<a href="javascript:void(0);" onclick="hideRow(\'#'+id+'\');"><img src="images/deleteButton.png" /></a></span></span>';
+	// There is a new key in a returned set - add a new row
+	ensureLevel(level);// Ensure that there is a class definition for the level.
+	var title=splitCamelCase(key);// First letter to upper case
+	var id=parentId+'_'+key;
+	var inside='<span><span class="level_'+level+'">'+title+'<a href="javascript:void(0);" onclick="hideRow(\''+id+'\');"><img src="images/deleteButton.png" /></a></span></span>';
 	var i=numHosts;
 	while (i--) {
 		// Add the correct number of columns
 		inside+='<span></span>';
 	}
-	var row='<div id="'+id+'" class="isnotparent">'+inside+'</div>';
+	var row='<div id="'+id.slice(1)+'" class="isnotparent">'+inside+'</div>';
 	var parentRef=$(parentId);
 	var children=parentRef.children();
-	if (parentRef.attr('class')=='isparent') {
+	if (parentRef.hasClass('isparent')) {
 		// Parent row already has child rows
-		children.slice(2,3).append(row);
+		if (data['sort'][parentId]) {i=data['sort'][parentId].indexOf(id);}
+		else {i=-1;}
+		if (i==-1) {
+			children.slice(2,3).append(row);
+		} else {
+			var el;
+			while (i-->0 && (el=$(data['sort'][parentId][i])).length==0);
+			if (i<0) {
+				children.slice(2,3).prepend(row);
+			} else {
+				el.after(row);
+			}
+		}
 	} else {
-		// Not a parent yet
+		// Not a parent yet - make it a parent and add row
 		var spanTag=children.slice(0,1).children()[0];
 		parentRef.html('<span><a href="javascript:void(0);" onclick="contractExpand(\''+parentId+'\');" class="'+spanTag.getAttribute('class')+'"><!--<img src="images/arrowDown.png" />-->'+spanTag.innerHTML+'</a></span><div>&nbsp;</div><div>'+row+'</div>');
 		parentRef.attr('class','isparent');
-		parentRef.children().slice(2,3).sortable();
+		parentRef.children().slice(2,3).sortable({distance: 10});
 	}
-	$('#'+id).hover(function (e) {$(this).addClass('rowHover').parent().parent().removeClass('rowHover');}, function (e) {var parent=$(this).removeClass('rowHover').parent().parent();if (parent.attr('id')!='stats'){parent.addClass('rowHover');}});
+	$(id).hover(function (e) {$(this).addClass('rowHover').parent().parent().removeClass('rowHover');}, function (e) {var parent=$(this).removeClass('rowHover').parent().parent();if (parent.attr('id') && parent.attr('id')!='stats'){parent.addClass('rowHover');}});
 }
 
 function ensureLevel(level) {
@@ -132,14 +151,34 @@ function ensureLevel(level) {
 	}
 }
 
+function splitCamelCase(s) {
+	return s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/\b([A-Z]+)([A-Z])([a-z])/, '$1 $2$3').replace(/^./, function(str){ return str.toUpperCase(); })
+}
+
 function contractExpand(id) {
 	// Contract a level div
 	$(id).children().slice(2,3).toggle('blind');
+	var i=0;
+	var c=contracts.length;
+	while (i<c) {
+		if (contracts[i]==id) {
+			contracts.splice(i,1);
+			return;
+		}
+		i++;
+	}
+	contracts[contracts.length]=id;
 }
 
 function hideRow(id) {
 	// Hide entire row
 	$(id).hide('blind');
+	hides[hides.length]=id;
+}
+
+function restoreHidden() {
+	hides=[];
+	location.reload(true);
 }
 
 function getUrlParam(param,s) { 
@@ -184,6 +223,7 @@ function addHost(hostData) {
 function updateHost(hostData) {
 	if (hostData.host in previousData) {
 		updateRowGroup(hostData.id, "#stats", hostData, -1);
+		if (newEdits) {applyEdits();newEdits=false;}
 		/*
 		var all_values = {"previousValues" : previousData[hostData.host], "currentValues" : hostData};
 		var template = Handlebars.compile($("#statusTemplate").html());
@@ -212,7 +252,7 @@ function updateRowGroup(colId, rowId, data, level) {
 			row=$(id);
 		}
 		if (data[de] instanceof Object) {
-			// Array
+			// Object
 			updateRowGroup(colId, id, data[de], level);
 		} else {
 			// Value
@@ -222,14 +262,13 @@ function updateRowGroup(colId, rowId, data, level) {
 }
 
 function addCol(row) {
-	if (row.attr('class')=='isparent') {
+	if (row.hasClass('isparent')) {
 		// Is a parent
 		var elements=row.children().slice(2,3).children();
 		var i=0;
 		var c=elements.length;
 		while (i<c) {
-			addCol(elements[i]);
-			i++;
+			addCol(elements.slice(i,++i));
 		}
 	} else {
 		// Is not a parent
@@ -243,17 +282,118 @@ function expandAll() {
 	var i=0;
 	var c=parents.length;
 	while (i<c) {
-		parents.slice(i,++i).children().slice(2,3).show('blind');
+		var el=parents.slice(i,++i).children().slice(2,3);
+		if (el.is(":hidden")) {el.show('blind');}
 	}
+	// Remove all contractions and expansions
+	contracts=[];
 }
 
 function collapseAll() {
 	// Collapse all rows
+	contracts=[];
 	var parents=$('#stats').find('.isparent');
 	var i=0;
+	var j=0;
 	var c=parents.length;
 	while (i<c) {
-		parents.slice(i,++i).children().slice(2,3).hide('blind');
+		var el=parents.slice(i,++i);
+		contracts[j++]='#'+el.attr('id');
+		el=el.children().slice(2,3);
+		if (el.is(":visible")) {el.hide('blind');}
+	}
+}
+
+function saveData() {
+	// Page is closing - save data for next time
+	// Serialize row sorting
+	var sort={};
+	var parents=$('BODY').find('.isparent');
+	var i=0;
+	var c=parents.length;
+	var parent,parentId,children,j,d;
+	while (i<c) {
+		parent=parents.slice(i,++i);
+		parentId='#'+parent.attr('id');
+		sort[parentId]=[];
+		children=parent.children().slice(2,3).children();
+		j=0;
+		d=children.length;
+		while (j<d) {
+			sort[parentId][j]='#'+children.slice(j,++j).attr('id');
+		}
+	}
+	var url = "command-proxy.php?command=d&data="+encodeURIComponent(JSON.stringify({'hostGroups':data['hostGroups'], 'contracts':contracts, 'hides': hides, 'sort': sort}));
+	var http = new XMLHttpRequest();
+	http.open("GET", url, false);
+	http.send(null);
+}
+
+function getRowSort(ref,sort) {
+	sort[id]=[];
+	var j=0;
+	console.log(ref);
+	var divs=ref.children().splice(2,3).children();
+	var i=0;
+	var c=divs.length;
+	var div,id;
+	while (i<c) {
+		div=divs.splice(i++,i);
+		id=div.attr('id');
+		sort[id][j++]=id;
+		if (div.hasClass('isparent')) {getRowSort(div,sort);}
+		i++;
+	}
+}
+
+function applyEdits() {
+	// Apply edits from saveData.js
+	// Apply contracts
+	var i=0;
+	var c=data['contracts'].length;
+	while (i<c) {
+		contractExpand(data['contracts'][i]);
+		i++;
+	}
+	// Apply hides
+	i=0;
+	c=data['hides'].length;
+	while (i<c) {
+		hideRow(data['hides'][i]);
+		i++;
+	}
+}
+
+function createHostGroupsMenu() {
+	var ref=$('#hostGroups');
+	var i=0;
+	var c=data['hostGroups'].length;
+	var group;
+	while (i<c) {
+		group=data['hostGroups'][i];
+		ref.append('<br /><br /><a href="index.html?host='+group+'">'+group+'</a>');
+		i++;
+	}
+}
+
+function createHostGroup() {
+	var name=prompt('Enter one host group server:','localhost');
+	if (name) {
+  		data['hostGroups'][data['hostGroups'].length]=name;
+		$('#hostGroups').append('<br /><br /><a href="index.html?host='+name+'">'+name+'</a>');
+		alert('The host group has been created. Please select it from the Host Groups menu to view it.');
+  	}
+}
+
+function getParameterByName(name) {
+	name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+	var regexS = "[\\?&]" + name + "=([^&#]*)";
+	var regex = new RegExp(regexS);
+	var results = regex.exec(window.location.search);
+	if(results == null) {
+		return "";
+	} else {
+		return decodeURIComponent(results[1].replace(/\+/g, " "));
 	}
 }
 

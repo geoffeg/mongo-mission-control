@@ -1,16 +1,13 @@
 <?php
 
-$m = new Mongo("mongodb://".$_GET['host'], array('replicaSet' => false));
-$m->setSlaveOkay(true);
-
 if ($_SERVER['HTTP_ACCEPT'] == "text/event-stream") {
 	header('Content-Type: text/event-stream');
 	header('Cache-Control: no-cache, must-revalidate');
 	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 	while (1) {
-		$response = runCommand($m, $_GET['command']);
+		$response = runCommand($_GET['command']);
 		$json = json_encode($response);
-		sendEvent("serverStatus", $json); 
+		sendEvent("s", $json); 
 		sleep(3);
 	}
 } else {
@@ -18,27 +15,26 @@ if ($_SERVER['HTTP_ACCEPT'] == "text/event-stream") {
 	header('Content-type: application/json');
 	header('Cache-Control: no-cache, must-revalidate');
 	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-	$response = runCommand($m, $_GET['command']);
+	$response = runCommand($_GET['command']);
 	$json = json_encode($response);
 	echo $json;
 }
 
-function runCommand($m, $command) {
-	$resp = $m->stats->command(array('serverStatus' => 1));
-	$replSetStatus = $m->admin->command(array('replSetGetStatus' => 1));
-	$resp['MyState'] = $replSetStatus['myState'];
-	return $resp;
-	/*
+function runCommand($command) {
 	switch($command) {
-		case "replSetGetStatus":
-			$response = $m->admin->command(array('replSetGetStatus' => 1));
+		case "s":
+			$m = new Mongo("mongodb://".$_GET['host'], array('replicaSet' => false));
+			$m->setSlaveOkay(true);
+			$resp = $m->stats->command(array('serverStatus' => 1));
+			$replSetStatus = $m->admin->command(array('replSetGetStatus' => 1));
+			$resp['MyState'] = $replSetStatus['myState'];
+			return $resp;
 			break;
-		case "serverStatus":
-			$response = $m->stats->command(array('serverStatus' => 1));
+		case "d":
+			file_put_contents('saveData.js','var data='.urldecode($_GET['data']));
+			return array();
 			break;
 	}
-	return $response;
-	*/
 }
 
 function sendEvent($id, $message) {

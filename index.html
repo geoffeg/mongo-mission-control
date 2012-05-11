@@ -3,6 +3,7 @@
 	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
 	<script type="text/javascript" src="js/jquery-ui-1.8.20.custom.min.js"></script>
 	<script type="text/javascript" src="js/sprintf.js"></script>
+	<script type="text/javascript" src="saveData.js"></script>
 	<!--<script type="text/javascript" src="js/handlebars.js"></script>-->
 	<script type="text/javascript" src="js/mmc.js"></script>
 	<script type="text/javascript" src="js/jquery.qtip/jquery.qtip.min.js"></script>
@@ -25,13 +26,16 @@
 				template = Handlebars.compile($('#statusTemplate').html());
 			});
 */
-			var config = {host: "localhost", replicaSet: false};
-
-			workers[config.host] = addServer(config);
+			var name = getParameterByName('host');
+			if (name) {
+				addServer({'host': name});
+			}
 			
 			$('#stats').children().slice(2,3).sortable();
+			
+			createHostGroupsMenu();
 		});
-
+		$(window).unload( saveData );
 
 	</script>
 </HEAD>
@@ -39,9 +43,9 @@
 <BODY>
 	<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
 		<div class="dropdown">
-			<span onclick="showRestore();">Restore...</span>
 			<span onclick="expandAll();">Expand All</span>
 			<span onclick="collapseAll();">Collapse All</span>
+			<span onclick="restoreHidden();">Restore Hidden Rows</span>
 		</div>
 	</span>
 	<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>

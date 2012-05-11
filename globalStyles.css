@@ -1,8 +1,8 @@
 BODY { color: white; font-family: "Inconsolata", monospace; background: black; margin: 0px; }
 
-span.dropdownParent { width: 150px; background-color: gray; border: 1px solid white; }
+span.dropdownParent { width: 300px; background-color: gray; border: 1px solid white; }
 div.dropdownHeader { padding: 4px; }
-div.dropdown { position: absolute; width: 141px; margin-top: 1px; background-color: darkgray; border: 1px solid white; padding: 4px; display: none; }
+div.dropdown { position: absolute; width: 291px; margin-top: 1px; background-color: darkgray; border: 1px solid white; padding: 4px; display: none; }
 span.dropdownParent:hover div.dropdown { display: inline; }
 div.dropdown span { width: 100%; padding-top: 4px; padding-bottom: 4px; }
 div.dropdown span:hover { background-color: dimgray; }
@@ -15,14 +15,14 @@ div.rowHover { background-color: dimgray; }
 
 span { float: left; }
 
-div { overflow: hidden; margin-top: 2px; }
+div { overflow: hidden; margin-top: 1px; margin-bottom: 1px; }
 
 div span a, div span span {color: #33D01E;}
 
 img { margin-left: 5px; vertical-align: middle; }
 
-span a img { display: none; }
-span:hover a img { display: inline; }
+span a img { visibility: hidden; }
+span:hover a img { visibility: visible; }
 
 /*
 .header-parent { color: #33D01E;}
