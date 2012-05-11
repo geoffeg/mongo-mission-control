@@ -38,10 +38,10 @@
 </div>
 
 <script id="hostHeaderTemplate" type="text/x-handlebars-template">
-	<div id="host-header-{{getCssHostName host}}" class="host-header">
+	<div id="host-header-{{getCssHostName currentValues.host}}" class="host-header">
 		{{cleanHostName currentValues.serverStatus.host}}<BR/>
 		{{currentValues.replicaSet.stateStr}}
-		<img src="images/icon_clock.gif" class="slow-server"/>
+		<div id="clock_icon_{{getCssHostName currentValues.host}}"></div>
 		<div class="qtip-content">
 			<TABLE>
 				<TR><TD>Version</TD><TD>{{currentValues.serverStatus.version}}</TD></TR>
@@ -55,7 +55,7 @@
 </script>
 
 <script id="statusTemplate" type="text/x-handlebars-template">
-	<div id="host-column-{{getCssHostName host}}" class="host-column">
+	<div id="host-column-{{getCssHostName currentValues.host}}" class="host-column">
 		{{#if currentValues.replicationLag}}{{currentValues.replicationLag}} secs{{else}}0 secs{{/if}}<BR/>
 		&nbsp;<BR/>
 		{{#if currentValues.serverStatus.opcounters}}{{getDiffVals currentValues.serverStatus.opcounters.insert previousValues.serverStatus.opcounters.insert previousValues.lastUpdate}}{{else}}&nbsp;{{/if}}<BR/>

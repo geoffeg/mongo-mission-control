@@ -1,11 +1,14 @@
 <?php
 
+$m = new Mongo("mongodb://".$_GET['host'], array('replicaSet' => false));
+$m->setSlaveOkay(true);
+
 if ($_SERVER['HTTP_ACCEPT'] == "text/event-stream") {
 	header('Content-Type: text/event-stream');
 	header('Cache-Control: no-cache, must-revalidate');
 	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
 	while (1) {
-		$response = runCommand($_GET['host'], $_GET['command']);
+		$response = runCommand($m, $_GET['command']);
 		$json = json_encode($response);
 		sendEvent("serverStatus", $json); 
 		sleep(3);
@@ -15,15 +18,17 @@ if ($_SERVER['HTTP_ACCEPT'] == "text/event-stream") {
 	header('Content-type: application/json');
 	header('Cache-Control: no-cache, must-revalidate');
 	header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-	$response = runCommand($_GET['host'], $_GET['command']);
+	$response = runCommand($m, $_GET['command']);
 	$json = json_encode($response);
 	echo $json;
 }
 
-function runCommand($host, $command) {
-	$m = new Mongo("mongodb://$host", array('replicaSet' => false));
-	$m->setSlaveOkay(true);
-
+function runCommand($m, $command) {
+	$resp = $m->stats->command(array('serverStatus' => 1));
+	$replSetStatus = $m->admin->command(array('replSetGetStatus' => 1));
+	$resp['MyState'] = $replSetStatus['myState'];
+	return $resp;
+	/*
 	switch($command) {
 		case "replSetGetStatus":
 			$response = $m->admin->command(array('replSetGetStatus' => 1));
@@ -33,6 +38,7 @@ function runCommand($host, $command) {
 			break;
 	}
 	return $response;
+	*/
 }
 
 function sendEvent($id, $message) {

@@ -1,5 +1,8 @@
+var slowSpeed=500;
+var refreshTime=1000;
+
 // var hostName = false;
-var config;
+var config = {hostname: '?'};
 var actions = {
 	sum: function(a, b) {
 		log('Summing: ' + a + ' + ' + b);
@@ -10,9 +13,11 @@ var actions = {
 	},
 	serverStatus: function() {
 		getStatus();
-		setInterval(getStatus, 1000);
+		setInterval(getStatus, refreshTime);
 	}
-}
+};
+
+var reqTimer=-1;
 
 onmessage = function(event) {
 	var data   = JSON.parse(event.data), // parse the data
@@ -21,43 +26,51 @@ onmessage = function(event) {
 	    result = { action: action };     // prepare the result
 
 	if (action in actions) {
+		// Run action with multiple arguments as an array
 		result.returnValue = actions[action].apply(this, args);
 	} else {
+		// Invalid action
+		console.log("Invalid Action: "+action);
 		result.returnValue = undefined;
 	}
-	//postMessage(JSON.stringify(result));
 }
 
 function getStatus() {
+	reqTimer=setTimeout(slowServer,slowSpeed);
 	getServerStatus(config['host']);
-	if (config['replicaSet'] == true) {
+	if (config['replicaSet']) {
 		getReplicaStatus(config['host']);
 	}
 }
 
-var hostData = {};
+var prevData = {};
 function collectStatus(type, data) {
 	if (type == "serverStatus") {
-		hostData['serverStatus'] = data;
-		hostData['host'] = data.host;
-		hostData['lastUpdate'] = new Date().getTime();
-	} else {
-		hostData['replicaSet'] = data;
-	}
-
-	if ("serverStatus" in hostData && config['replicaSet'] === false) {
-		var result = { action: "serverStatus", "returnValue" : hostData };
-		postMessage(JSON.stringify(result));
-	} else if ("serverStatus" in hostData && config['replicaSet'] === true && "replicaSet" in hostData) {
-		if (hostData.replicaSet.stateStr == "SECONDARY") {
-			hostData.serverStatus.opcounters = hostData.serverStatus.opcountersRepl;
+		// Server status
+		data['id'] = config.id;
+		data['LastUpdate'] = new Date().toLocaleString();
+		processData(data);
+		var newConfig, result, server;
+		for (server in data.repl.hosts) {
+			newConfig = {host: data.repl.hosts[server], replicaSet: false};
+			result = { action: "addServer", "returnValue": newConfig };
+			postMessage(JSON.stringify(result));
 		}
-		var result = { action: "serverStatus", "returnValue" : hostData };
-		postMessage(JSON.stringify(result));
+	} else {
+		// Replica set status
+		//hostData['replicaSet'] = data;
 	}
+	
+	if ("serverStatus" in data && config['replicaSet'] === true && "replicaSet" in data && data.replicaSet.stateStr == "SECONDARY") {
+		// Secondary
+		data.opcounters = data.opcountersRepl;
+	}
+	var result = { action: "serverStatus", "returnValue" : data };
+	postMessage(JSON.stringify(result));
 }
 
 function getReplicaStatus(host) {
+	// This function gets the secondary servers of hosts that have replicaSet true
 	var serverStatusUrl = "../command-proxy.php?host=" + host + "&command=replSetGetStatus";
 	getJSON(serverStatusUrl, function(data) {
 		collectStatus('replicaStatus', data);
@@ -65,6 +78,7 @@ function getReplicaStatus(host) {
 }
 
 function getServerStatus(host) {
+	// This is called on hosts that have replicaSet false
 	var serverStatusUrl = "../command-proxy.php?host=" + host + "&command=serverStatus";
 	getJSON(serverStatusUrl, function(data) {
 		collectStatus('serverStatus', data);
@@ -79,16 +93,47 @@ function log(msg) {
 }
 
 function getJSON(url, callback) {
+	// Executes an asynchronous ajax request.
+	// When finished, parses result text to JSON, and calls callback with the JSON as the single argument.
 	var http = new XMLHttpRequest();
 	http.open("GET", url, false);
 	http.onreadystatechange = function() {
 		if (http.readyState == 4) {
 			if (http.status == 200)  {
-				var result = "";
-				if (http.responseText) result = eval('(' + http.responseText + ')');
-				callback(result);
+				if (http.responseText) {
+					var result = eval('(' + http.responseText + ')');
+					if (reqTimer!=-1) {
+						// Server is fast
+						clearTimeout(reqTimer);
+						reqTimer=-1;
+						postMessage(JSON.stringify({
+							action: 'setSlowServer',
+							returnValue: [result.host, false]
+						}));
+					}
+					callback(result);
+				}
 			}
 		}
 	}
 	http.send(null);
+}
+
+function slowServer() {
+	// Server is slow
+	if (reqTimer!=-1) {
+		reqTimer=-1;
+		if (prevData.host) {
+			postMessage(JSON.stringify({
+				action: 'setSlowServer',
+				returnValue: [prevData.host, true]
+			}));
+		}
+	}
+}
+
+function processData(data) {
+	// Creates difference and ratio items
+	var stateStrings=['Starting up, phase 1', 'Primary', 'Secondary', 'Recovering', 'Fatal error', 'Starting up, phase 2', 'Unknown state', 'Arbiter', 'Down', 'Rollback', 'Removed'];
+	data['StateString']=stateStrings[data['MyState']];
 }

@@ -1,26 +1,16 @@
 <HTML>
 <HEAD>
-	<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="js/jquery-ui-1.8.20.custom.min.js"></script>
 	<script type="text/javascript" src="js/sprintf.js"></script>
-	<script type="text/javascript" src="js/handlebars.js"></script>
+	<!--<script type="text/javascript" src="js/handlebars.js"></script>-->
 	<script type="text/javascript" src="js/mmc.js"></script>
 	<script type="text/javascript" src="js/jquery.qtip/jquery.qtip.min.js"></script>
 
 	<link type="text/css" rel="stylesheet" href="js/jquery.qtip/jquery.qtip.min.css"/>
-	<style>
-		BODY { color: white; font-family: "Inconsolata", monospace; background: black; margin: 0px; }
-		.header-parent { color: #33D01E;}
-		#mongo-set-selector TD { text-align: center; color: #999 }
-		#mongo-set-selector TD.selected-cell { background: #444; color: #FFF }
-		#mongo-set-selector TD:hover { background: #666 }
-		
-		#mongo-stats-header { position: fixed; background: black; z-index: 10; }
-		.host-header { display: inline; float: left; word-wrap: break-word; text-align: center; position: absolute}
-		.host-column { display: inline; float: left; text-align: center; }
-		#mongo-status-table { position: relative; top: 60px; border: 1px solid white;}
-		.qtip-content { display: none; color: black }
-		#mongo-stats-column-labels { border-right: 1px solid white; padding: 0 5px; }
-	</style>
+	
+	<link type="text/css" rel="stylesheet" href="globalStyles.css"/>
+	<style id="spanStyle">/* Specifies column width */</style>
 
 	<script language="javascript">
 		var workers = Array();
@@ -29,22 +19,17 @@
 			$(window).resize(function() {
 				calculateColumnWidths();
 			});
-
+/*
 			$.get('pages/stats.html', function(data) {
 				$("BODY").append(data);
 				template = Handlebars.compile($('#statusTemplate').html());
 			});
-
+*/
 			var config = {host: "localhost", replicaSet: false};
 
-			workers["localhost"] = addServer(config);
-
-			for (var worker in workers) {
-				workers[worker].postMessage(JSON.stringify({
-					action: 'serverStatus',
-					args: []
-				}));
-			}
+			workers[config.host] = addServer(config);
+			
+			$('#stats').children().slice(2,3).sortable();
 		});
 
 
@@ -52,5 +37,19 @@
 </HEAD>
 
 <BODY>
+	<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
+		<div class="dropdown">
+			<span onclick="showRestore();">Restore...</span>
+			<span onclick="expandAll();">Expand All</span>
+			<span onclick="collapseAll();">Collapse All</span>
+		</div>
+	</span>
+	<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>
+		<div class="dropdown" id="hostGroups">
+			<span onclick="createHostGroup();">Create Group</span>
+		</div>
+	</span>
+	<br /><br />
+	<div id="stats" class="isparent"><span></span><span></span><div></div></div>
 </BODY>
 </HTML>
