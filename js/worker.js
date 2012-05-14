@@ -83,9 +83,11 @@ function slowServer() {
 var prevData = {};
 function collectStatus(data) {
 
-	processData(data);
 	data['id'] = config.id;
-	data['LastUpdate'] = new Date().toLocaleString();
+	data['lastUpdateString'] = new Date().toLocaleString();
+	data['lastUpdate'] = new Date().getTime();
+	var dataClone=clone(data);
+	processData(data);
 	var newConfig, result, server;
 	for (server in data.repl.hosts) {
 		newConfig = {host: data.repl.hosts[server], replicaSet: false};
@@ -95,44 +97,126 @@ function collectStatus(data) {
 	
 	var result = { action: "serverStatus", "returnValue" : data };
 	postMessage(JSON.stringify(result));
-	prevData=data;
+	
+	prevData=dataClone;
 }
 
 function processData(data) {
 	var stateStrings=['Starting up, phase 1', 'Primary', 'Secondary', 'Recovering', 'Fatal error', 'Starting up, phase 2', 'Unknown state', 'Arbiter', 'Down', 'Rollback', 'Removed'];
-	try {
-	data['stateString']=stateStrings[data['MyState']];
-	if (isEmpty(prevData)){return;}
-	//data['globalLock']['totalTimeDiff']=data['globalLock']['totalTime']-prevData['globalLock']['totalTime'];
-	data['network']['bytesInDiff']=data['network']['bytesIn']-prevData['network']['bytesIn'];
-	data['network']['bytesOutDiff']=data['network']['bytesOut']-prevData['network']['bytesOut'];
-	data['network']['numRequestsDiff']=data['network']['numRequests']-prevData['network']['numRequests'];
-	
-	data['opcounters']['insertDiff']=data['opcounters']['insert']-prevData['opcounters']['insert'];
-	data['opcounters']['queryDiff']=data['opcounters']['query']-prevData['opcounters']['query'];
-	data['opcounters']['updateDiff']=data['opcounters']['update']-prevData['opcounters']['update'];
-	data['opcounters']['deleteDiff']=data['opcounters']['delete']-prevData['opcounters']['delete'];
-	data['opcounters']['getmoreDiff']=data['opcounters']['getmore']-prevData['opcounters']['getmore'];
-	data['opcounters']['commandDiff']=data['opcounters']['command']-prevData['opcounters']['command'];
-	
-	data['opcountersRepl']['insertDiff']=data['opcountersRepl']['insert']-prevData['opcountersRepl']['insert'];
-	data['opcountersRepl']['queryDiff']=data['opcountersRepl']['query']-prevData['opcountersRepl']['query'];
-	data['opcountersRepl']['updateDiff']=data['opcountersRepl']['update']-prevData['opcountersRepl']['update'];
-	data['opcountersRepl']['deleteDiff']=data['opcountersRepl']['delete']-prevData['opcountersRepl']['delete'];
-	data['opcountersRepl']['getmoreDiff']=data['opcountersRepl']['getmore']-prevData['opcountersRepl']['getmore'];
-	data['opcountersRepl']['commandDiff']=data['opcountersRepl']['command']-prevData['opcountersRepl']['command'];
-	
-	if (data['MyState']==1) {
-		// Primary
-		data['relevantOpcounters']=data['opcounters'];
-	} else if (data['MyState']==2) {
-		// Secondary
-		data['relevantOpcounters']=data['opcountersRepl'];
+	if (data['MyState']) {
+		data['stateString']=stateStrings[data['MyState']];
 	}
 	
-	data['globalLock']['ratio']=(Math.round(data['globalLock']['ratio']*1e11)/1e9).toString()+'%';
-	data['indexCounters']['btree']['missRatio']=(Math.round(data['indexCounters']['btree']['missRatio']*1e11)/1e9).toString()+'%';
-	} catch(e) {}
+	if (data['globalLock'] && data['globalLock']['ratio']) {
+		data['globalLock']['ratio']=(Math.round(data['globalLock']['ratio']*1e4)/1e2).toString()+'%';
+	}
+	
+	if (data['indexCounters'] && data['indexCounters']['btree'] && data['indexCounters']['btree']['missRatio']) {
+		data['indexCounters']['btree']['missRatio']=(Math.round(data['indexCounters']['btree']['missRatio']*1e4)/1e2).toString()+'%';
+	}
+	
+	if (prevData['lastUpdate']) {
+		// If prevData is set, lastUpdate should be set
+		var timeDiff=(data['lastUpdate']-prevData['lastUpdate'])/1000;
+	}
+	
+	var val,op,i,c;
+	if (data['opcounters']) {
+		for (op in data['opcounters']) {
+			if (prevData['opcounters'] && prevData['opcounters'][op]) {
+				data['opcounters'][op+'sPerSec']=Math.round((data['opcounters'][op]-prevData['opcounters'][op])/timeDiff*1e2)/1e2;
+			}
+			data['opcounters'][op]=prettyNum(data['opcounters'][op]);
+		}
+	}
+	if (data['opcountersRepl']) {
+		for (op in data['opcountersRepl']) {
+			if (prevData['opcountersRepl'] && prevData['opcountersRepl'][op]) {
+				data['opcountersRepl'][op+'sPerSec']=Math.round((data['opcountersRepl'][op]-prevData['opcountersRepl'][op])/timeDiff*1e2)/1e2;
+			}
+			data['opcountersRepl'][op]=prettyNum(data['opcountersRepl'][op]);
+		}
+	}
+		
+	if (data['globalLock'] && data['globalLock']['lockTime'] && data['globalLock']['totalTime'] && prevData['globalLock'] && prevData['globalLock']['lockTime'] && prevData['globalLock']['totalTime']) {
+		data['globalLock']['currentRatio']=(Math.round((data['globalLock']['lockTime']-prevData['globalLock']['lockTime'])/(data['globalLock']['totalTime']-prevData['globalLock']['totalTime'])*1e4)/1e2).toString()+'%';
+	}
+		
+	if (data['network']) {
+		var val;
+		if (val=data['network']['bytesIn']) {
+			if (prevData['network'] && prevData['network']['bytesIn']) {
+				data['network']['dataIn']=prettyBytesRate((val-prevData['network']['bytesIn'])/timeDiff);
+			}
+			data['network']['bytesIn']=prettyBytes(val);
+		}
+		if (val=data['network']['bytesOut']) {
+			if (prevData['network'] && prevData['network']['bytesOut']) {
+				data['network']['dataOut']=prettyBytesRate((val-prevData['network']['bytesOut'])/timeDiff);
+			}
+			data['network']['bytesOut']=prettyBytes(val);
+		}
+		
+		if (data['network']['numRequests']) {
+			if (prevData['network'] && prevData['network']['numRequests']) {
+				data['network']['numReqsPerSec']=(Math.round((data['network']['numRequests']-prevData['network']['numRequests'])/timeDiff*1e2)/1e2).toString()+'/sec';
+			}
+			data['network']['numRequests']=prettyNum(data['network']['numRequests']);
+		}
+	}
+	
+	if (data['MyState']) {
+		if (data['MyState']==1 && data['opcounters']) {
+			// Primary
+			data['relevantOpcounters']=data['opcounters'];
+		} else if (data['MyState']==2 && data['opcountersRepl']) {
+			// Secondary
+			data['relevantOpcounters']=data['opcountersRepl'];
+		}
+	}
+}
+function toScientific(data) {
+	var val;
+	var de;// Data element
+	for (de in data) {
+		// Loop through each element of data
+		val=data[de];
+		if (val instanceof Object) {
+			// Object
+			toScientific(val);
+		} else if (val.toExponential && val && (val>=1e6 || val<=1e-3)) {
+			// Large or small value
+			data[de]=val.toExponential(2);
+		}
+	}
+}
+
+function prettyBytes(val) {
+	return prettyVal(val, [' B',' kB',' MB',' GB',' TB']);
+}
+function prettyBytesRate(val) {
+	return prettyVal(val, [' B/sec',' kB/sec',' MB/sec',' GB/sec',' TB/sec']);
+}
+function prettyNum(val) {
+	return prettyVal(val, ['',' thousand',' million',' billion',' trillion']);
+}
+function prettyVal(val, suffixes) {
+	var i=0;
+	var c=suffixes.length-1;
+	while (val>1e3 && i<c){val/=1e3;i++;}
+	return (Math.round(val*1e2)/1e2).toString()+suffixes[i];
+}
+
+function clone(obj) {
+	var c = {};
+	for(var i in obj) {
+		if(obj[i] instanceof Object) {
+			c[i] = clone(obj[i]);
+		} else {
+			c[i] = obj[i];
+		}
+	}
+	return c;
 }
 
 function isEmpty(ob) {

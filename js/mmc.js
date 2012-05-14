@@ -47,9 +47,9 @@ function addServer(config) {
 	// Calculate correct column widths
 	numHosts++;
 	addCol($('#stats'));
-	var firstWidthPerc = Math.floor(120/(numHosts+1.2));
-	var restWidthPerc = Math.floor(100/(numHosts+1));
-	$('#spanStyle').html('div>div>span:first-child { width: '+firstWidthPerc+'%; } div>div>span:not(:first-child) { width: '+restWidthPerc+'%; }');
+	var firstWidthPerc = Math.floor(110/(numHosts+1.1));
+	var restWidthPerc = Math.floor(100/(numHosts+1))-2;
+	$('#spanStyle').html('div>div>span:first-child { width: '+firstWidthPerc+'%; } div>div>span:not(:first-child) { width: '+restWidthPerc+'%; margin-right: 2%; }');
 	
 	var actions = {
 		log: function(message) {
@@ -103,7 +103,7 @@ function addRow(parentId, key, level) {
 	var i=numHosts;
 	while (i--) {
 		// Add the correct number of columns
-		inside+='<span></span>';
+		inside+='<span>&nbsp;</span>';
 	}
 	var row='<div id="'+id.slice(1)+'" class="isnotparent">'+inside+'</div>';
 	var parentRef=$(parentId);
@@ -219,7 +219,7 @@ function updateRowGroup(colId, rowId, data, level) {
 			updateRowGroup(colId, id, data[de], level);
 		} else {
 			// Value
-			row.children()[colId].innerHTML=data[de];
+			row.children()[colId].innerHTML=(data[de]==='' ? '&nbsp;' : data[de]);
 		}
 	}
 }

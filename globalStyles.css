@@ -1,6 +1,6 @@
 BODY { color: white; font-family: "Inconsolata", monospace; background: black; margin: 0px; }
 
-span.dropdownParent { width: 300px; background-color: gray; border: 1px solid white; }
+span.dropdownParent { width: 300px; height: 26px; background-color: gray; border: 1px solid white; }
 div.dropdownHeader { padding: 4px; }
 div.dropdown { position: absolute; width: 291px; margin-top: 1px; background-color: darkgray; border: 1px solid white; padding: 4px; display: none; }
 span.dropdownParent:hover div.dropdown { display: inline; }
@@ -10,16 +10,19 @@ div.dropdown span:hover { background-color: dimgray; }
 /* div.isnotparent:hover { background-color: dimgray; } */
 
 div.rowHover { background-color: dimgray; }
+div.rowHover>span { white-space: normal; height: inherit; }
 
 a { color: white; }
 
 a.this { color: black; }
 
-span { float: left; }
+span { float: left; height: 19px; overflow: hidden; white-space: nowrap; word-wrap: break-word; }
 
-div { overflow: hidden; margin-top: 1px; margin-bottom: 1px; }
+/* div.isnotparent>span:not(:first-child) { text-align: center; } */
 
-div span a, div span span {color: #33D01E;}
+div { overflow: hidden; padding-top: 1px; padding-bottom: 1px; }
+
+div span a, div span span { color: #33D01E; }
 
 img { margin-left: 5px; vertical-align: middle; }
 
