@@ -15,15 +15,7 @@
 		var workers = Array();
 		var template = false;
 		$(document).ready(function() {
-			$(window).resize(function() {
-				calculateColumnWidths();
-			});
-/*
-			$.get('pages/stats.html', function(data) {
-				$("BODY").append(data);
-				template = Handlebars.compile($('#statusTemplate').html());
-			});
-*/
+			
 			createHostGroupsMenu();
 			
 			var name = getParameterByName('host');
