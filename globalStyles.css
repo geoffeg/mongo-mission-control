@@ -11,7 +11,9 @@ div.dropdown span:hover { background-color: dimgray; }
 
 div.rowHover { background-color: dimgray; }
 
+a { color: white; }
 
+a.this { color: black; }
 
 span { float: left; }
 

@@ -23,6 +23,7 @@ if ($_SERVER['HTTP_ACCEPT'] == "text/event-stream") {
 function runCommand($command) {
 	switch($command) {
 		case "s":
+			// Get stats
 			$m = new Mongo("mongodb://".$_GET['host'], array('replicaSet' => false));
 			$m->setSlaveOkay(true);
 			$resp = $m->stats->command(array('serverStatus' => 1));
@@ -31,6 +32,7 @@ function runCommand($command) {
 			return $resp;
 			break;
 		case "d":
+			// Save data
 			file_put_contents('saveData.js','var data='.urldecode($_GET['data']));
 			return array();
 			break;

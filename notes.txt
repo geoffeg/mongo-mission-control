@@ -1,23 +1,3 @@
-Display state for each server:
-	Online
-	Startup
-	Recovering
-	Offline
-
-Clock icon
-Hoverboxes
-Row drag and drop
-
-Host Groups
-	Host 1
-	...
-Rows
-	Restore...
-	Expand All
-	Collapse All
-
-
-
 Git commiting:
 git add -A
 git commit
