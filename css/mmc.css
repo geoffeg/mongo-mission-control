@@ -1,0 +1,106 @@
+BODY {
+color:#FFF;
+font-family:"Inconsolata", monospace;
+background:#000;
+margin:0;
+}
+
+span.dropdownParent {
+width:20%;
+height:26px;
+background-color:gray;
+border:1px solid #FFF;
+float:left;
+cursor:default;
+}
+
+div.dropdownHeader {
+padding:4px;
+text-align:center;
+}
+
+div.dropdown {
+position:absolute;
+width:19.5%;
+margin-top:1px;
+background-color:#A9A9A9;
+border:1px solid #FFF;
+display:none;
+padding:4px;
+}
+
+span.dropdownParent:hover div.dropdown {
+display:inline;
+}
+
+div.dropdown>span,div.dropdown>a {
+width:100%;
+padding-top:4px;
+padding-bottom:4px;
+float:left;
+cursor:default;
+}
+
+div.dropdown>span:hover,div.dropdown>a:hover {
+background-color:#696969;
+}
+
+div.dropdown>a {
+color:#FFF;
+}
+
+div.dropdown>a.this {
+color:#000;
+}
+
+/* Row css */
+
+div.isparent,div.isnotparent {
+padding: 2px 0px;
+}
+
+div.isparent>span {
+float:left;
+white-space:nowrap;
+}
+
+div.isnotparent>span {
+float:left;
+overflow:hidden;
+word-wrap:break-word;
+}
+
+div.isparent div {
+overflow:hidden;
+}
+
+div.isparent>span>a,div.isnotparent>span>span {
+color:#33D01E;
+}
+
+/* Row hover css */
+
+div.rowHover {
+background-color:#696969;
+}
+
+div.rowHover>span {
+height:inherit;
+}
+
+div.isnotparent.rowHover>span {
+white-space:normal;
+}
+
+/* Row header x image css */
+
+div.isparent>span>a>img,div.isnotparent>span>span>a>img {
+padding-left:5px;
+margin-top:2px;
+visibility:hidden;
+position:absolute;
+}
+
+div.isparent>span:hover>a>img,div.isnotparent>span:hover>span>a>img {
+visibility:visible;
+}

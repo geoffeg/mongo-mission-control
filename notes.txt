@@ -1,5 +1,0 @@
-Git commiting:
-git add -A
-git commit
-	<Esc> :wq <Enter>
-git push

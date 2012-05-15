@@ -7,10 +7,13 @@
 	<script type="text/javascript" src="js/mmc.js"></script>
 	<script type="text/javascript" src="js/jquery.qtip/jquery.qtip.min.js"></script>
 
-	<link type="text/css" rel="stylesheet" href="js/jquery.qtip/jquery.qtip.min.css"/>
-	
-	<link type="text/css" rel="stylesheet" href="globalStyles.css"/>
 	<style id="spanStyle">/* Specifies column width */</style>
+	<style id="rowExpandStyle">div.isnotparent>span {height:18px; white-space:nowrap;}</style>
+	<style id="centerColumnsStyle"></style>
+	
+	<link type="text/css" rel="stylesheet" href="css/mmc.css"/>
+	<link type="text/css" rel="stylesheet" href="js/jquery.qtip/jquery.qtip.min.css"/>
+	<link type="text/css" rel="stylesheet" href="css/ui-lightness/jquery-ui-1.8.20.custom.css"/>
 
 	<script language="javascript">
 		var workers = Array();
@@ -28,6 +31,19 @@
 			$('#stats').children().slice(2,3).sortable({'distance': 10, 'axis': 'y'});
 			
 			contracts=data['contracts'];
+			
+			$('#prefsDialog').dialog({
+				autoOpen: false,
+				resizable: false,
+				show: 'blind',
+				hide: 'blind'
+			});
+			
+			$('#expandRows').change(setExpandRows);
+			$('#centerColumns').change(setCenterColumns);
+			
+			if (data['expandRows']){$('#expandRows').click();}
+			if (data['centerColumns']){$('#centerColumns').click();}
 		});
 		$(window).unload( saveData );
 
@@ -35,25 +51,36 @@
 </HEAD>
 
 <BODY>
-	<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
-		<div class="dropdown">
-			<span onclick="expandAll();">Expand All</span>
-			<span onclick="collapseAll();">Collapse All</span>
-			<span onclick="restoreHidden();">Restore Hidden Rows</span>
-			<span onclick="restoreSorting();">Restore Original Sorting</span>
-		</div>
-	</span>
-	<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>
-		<div class="dropdown" id="hostGroups">
-			<span onclick="createHostGroup();">Create Group</span>
-		</div>
-	</span>
-	<span id="prefsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Preferences</div>
-		<div class="dropdown">
-			<span onclick="changeRefreshSpeed();">Change Refresh Speed</span>
-		</div>
-	</span>
+	<div class="dropdownContainer">
+		<span style="float:left; width:20%;">&nbsp;</span>
+		<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
+			<div class="dropdown">
+				<span onclick="expandAll();">Expand All</span>
+				<span onclick="collapseAll();">Collapse All</span>
+				<span onclick="restoreHidden();">Restore Hidden Rows</span>
+				<span onclick="restoreSorting();">Restore Original Sorting</span>
+			</div>
+		</span>
+		<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>
+			<div class="dropdown" id="hostGroups">
+				<span onclick="createHostGroup();">Create Group</span>
+			</div>
+		</span>
+		<span id="prefsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Preferences</div>
+			<div class="dropdown">
+				<span onclick="changeRefreshSpeed();">Change Refresh Speed</span>
+				<span onclick="changeDisplayPrefs();">Edit Display Preferences</span>
+			</div>
+		</span>
+	</div>
 	<br /><br />
 	<div id="stats" class="isparent"><span></span><span></span><div></div></div>
+	<div id="prefsDialog" title="Display Preferences">
+		<form>
+			<input type="checkbox" id="expandRows" /><label for="expandRows">Always expand rows</label>
+			<br />
+			<input type="checkbox" id="centerColumns" /><label for="centerColumns">Center Columns</label>
+		</form>
+	</div>
 </BODY>
 </HTML>

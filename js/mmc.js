@@ -47,9 +47,9 @@ function addServer(config) {
 	// Calculate correct column widths
 	numHosts++;
 	addCol($('#stats'));
-	var firstWidthPerc = Math.floor(110/(numHosts+1.1));
-	var restWidthPerc = Math.floor(100/(numHosts+1))-2;
-	$('#spanStyle').html('div>div>span:first-child { width: '+firstWidthPerc+'%; } div>div>span:not(:first-child) { width: '+restWidthPerc+'%; margin-right: 2%; }');
+	var firstWidthPerc = Math.floor(1100/(numHosts+1.1))/10;
+	var restWidthPerc = Math.floor(1000/(numHosts+1.1))/10-2;
+	$('#spanStyle').html('div>div.isparent>span:first-child, div>div.isnotparent>span:first-child { width: '+firstWidthPerc+'%; } div>div>span:not(:first-child) { width: '+restWidthPerc+'%; margin-right: 2%; }');
 	
 	var actions = {
 		log: function(message) {
@@ -197,6 +197,32 @@ function changeRefreshSpeed() {
   		
   	}
 }
+function changeDisplayPrefs() {
+	// Change display preferences
+	$("#prefsDialog").dialog("open");
+}
+function setExpandRows() {
+	// Set whether to expand rows all the time or just on hover
+	if (this.checked) {
+		// All the time
+		$('#rowExpandStyle').html('div.isnotparent>span {height:inherit; white-space:normal;}');
+	} else {
+		// Just on hover
+		$('#rowExpandStyle').html('div.isnotparent>span {height:18px; white-space:nowrap;}');
+	}
+	data['expandRows']=this.checked;
+}
+function setCenterColumns() {
+	// Set whether to center column contents
+	if (this.checked) {
+		// Center
+		$('#centerColumnsStyle').html('div.isnotparent>span:not(:first-child) {text-align: center;}');
+	} else {
+		// Don't center
+		$('#centerColumnsStyle').html('');
+	}
+	data['centerColumns']=this.checked;
+}
 
 function updateRowGroup(colId, rowId, data, level) {
 	// Recursive function to insert data into correct rows.
@@ -291,7 +317,7 @@ function saveData() {
 	}
 	
 	// Send ajax request that will save data to saveData.js
-	var url = "command-proxy.php?command=d&data="+encodeURIComponent(JSON.stringify({'hostGroups':data['hostGroups'], 'contracts':contracts, 'hides': hides, 'sort': sort}));
+	var url = "command-proxy.php?command=d&data="+encodeURIComponent(JSON.stringify({'hostGroups':data['hostGroups'], 'contracts':contracts, 'hides': hides, 'sort': sort, 'expandRows': data['expandRows'], 'centerColumns': data['centerColumns']}));
 	var http = new XMLHttpRequest();
 	http.open("GET", url, false);
 	http.send(null);
@@ -305,7 +331,7 @@ function createHostGroupsMenu() {
 	var group;
 	while (i<c) {
 		group=data['hostGroups'][i];
-		ref.append('<br /><br /><a href="index.html?host='+group+'&refresh='+refreshSpeed+'">'+group+'</a>');
+		ref.append('<br /><a href="index.html?host='+group+'&refresh='+refreshSpeed+'">'+group+'</a>');
 		i++;
 	}
 }
