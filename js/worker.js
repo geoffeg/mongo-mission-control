@@ -1,4 +1,4 @@
-var slowSpeed=1000;
+var slowSpeed=500;
 
 // var hostName = false;
 var config = {hostname: '?'};
@@ -15,6 +15,7 @@ var actions = {
 };
 
 var reqTimer=-1;
+var reqTime=0;
 
 onmessage = function(event) {
 	var data   = JSON.parse(event.data), // parse the data
@@ -34,6 +35,7 @@ onmessage = function(event) {
 
 function getStatus() {
 	reqTimer=setTimeout('slowServer();',slowSpeed);
+	reqTime=new Date().getTime();
 	getServerStatus(config['host']);
 }
 
@@ -59,7 +61,7 @@ function getJSON(url, callback) {
 						// Server is fast
 						clearTimeout(reqTimer);
 						reqTimer=-1;
-						result.slowServer='';
+						result.requestTime=(new Date().getTime()-reqTime)+'ms';
 					}
 					callback(result);
 				}
@@ -74,7 +76,7 @@ function slowServer() {
 	if (reqTimer!=-1) {
 		reqTimer=-1;
 		if (prevData.host) {
-			var result = { action: 'serverStatus', 'returnValue' : {'host': prevData.host, 'id': config.id, 'slowServer': '<img src="images/slowServer.png" />'} };
+			var result = { action: 'serverStatus', 'returnValue' : {'host': prevData.host, 'id': config.id, 'requestTime': '<img src="images/slowServer.png" width="16" /> '+(new Date().getTime()-reqTime)+'ms'} };
 			postMessage(JSON.stringify(result));
 		}
 	}
@@ -89,12 +91,13 @@ function collectStatus(data) {
 	var dataClone=clone(data);
 	processData(data);
 	var newConfig, result, server;
-	for (server in data.repl.hosts) {
-		newConfig = {host: data.repl.hosts[server], replicaSet: false};
-		result = { action: "addServer", "returnValue": newConfig };
-		postMessage(JSON.stringify(result));
+	if (data.repl && data.repl.hosts) {
+		for (server in data.repl.hosts) {
+			result = { action: "addServer", "returnValue": data.repl.hosts[server] };
+			postMessage(JSON.stringify(result));
+		}
 	}
-	
+		
 	var result = { action: "serverStatus", "returnValue" : data };
 	postMessage(JSON.stringify(result));
 	

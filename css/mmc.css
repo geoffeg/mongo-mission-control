@@ -29,6 +29,11 @@ display:none;
 padding:4px;
 }
 
+div.dropdown#hostGroups {
+/* Host Groups dropdown needs to be wider. */
+width:30%;
+}
+
 span.dropdownParent:hover div.dropdown {
 display:inline;
 }
@@ -47,10 +52,24 @@ background-color:#696969;
 
 div.dropdown>a {
 color:#FFF;
+text-decoration: none;
 }
 
 div.dropdown>a.this {
 color:#000;
+}
+
+/*
+div.dropdown>a.shard {
+padding-left:5%;
+width:95%;
+}
+*/
+
+/* Form css */
+
+input[type=text] {
+width:400px;
 }
 
 /* Row css */

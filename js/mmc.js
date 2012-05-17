@@ -35,14 +35,17 @@ var restoreSort=false;// Wether to restore original sort (true) or store current
 var refreshSpeed=getParameterByName('refresh');
 if (!refreshSpeed){refreshSpeed=1;}
 
-function addServer(config) {
-	if (activeHosts[config.host]) {
+function addServer(name) {
+	if (activeHosts[name]) {
 		// Only add new hosts.
 		return;
 	}
-	activeHosts[config.host] = true;
+	activeHosts[name] = true;
 	
-	console.log("Added server: "+config.host);
+	console.log("Added server: "+name);
+	
+	// Highlight shard in Host Groups dropdown menu
+	$("div#hostGroups a.shard:contains("+name+")").addClass('this');
 	
 	// Calculate correct column widths
 	numHosts++;
@@ -58,8 +61,8 @@ function addServer(config) {
 		serverStatus: function(hostData) {
 			updateRowGroup(hostData.id, "#stats", hostData, -1);
 		},
-		addServer: function(config) {
-			addServer(config);
+		addServer: function(name) {
+			addServer(name);
 		}
 	};
 
@@ -82,6 +85,7 @@ function addServer(config) {
 		}
 	};
 
+	var config={'host': name};
 	config.id=numHosts;
 	config.speed=refreshSpeed*1000;// Refresh speed
 	
@@ -92,6 +96,15 @@ function addServer(config) {
 	}));
 	
 	workers[workers.length] = worker;
+}
+
+function setUrl() {
+	var hosts='';
+	var host;
+	for (host in activeHosts) {
+		hosts+=','+host;
+	}
+	history.pushState({}, 'Mongo Mission Control', 'index.html?hosts='+hosts.slice(1)+'&refresh='+refreshSpeed);
 }
 
 function addRow(parentId, key, level) {
@@ -178,28 +191,21 @@ function hideRow(id) {
 function restoreHidden() {
 	// Restore all hidden rows. Called from menu.
 	hides=[];
-	location.reload(true);
 }
 function restoreSorting() {
 	// Restore original sorting. Called from menu.
 	restoreSort=true;
 	location.reload(true);
+	// Reset data['sort'], and remove all rows.
 }
 function changeRefreshSpeed() {
 	// Change refresh speed. Called from menu.
 	var speed=prompt('Enter new refresh speed in seconds:','5');
 	if (speed) {
-  		var loc=window.location.pathname;
-  		var host=getParameterByName('host');
-  		if (host) {loc+='?host='+host+'&refresh='+speed;}
-  		else {loc+='?refresh='+speed;}
-  		window.location=loc;
-  		
+		refreshSpeed=speed;
+		setUrl();
+  		location.reload(true);
   	}
-}
-function changeDisplayPrefs() {
-	// Change display preferences
-	$("#prefsDialog").dialog("open");
 }
 function setExpandRows() {
 	// Set whether to expand rows all the time or just on hover
@@ -325,24 +331,103 @@ function saveData() {
 
 function createHostGroupsMenu() {
 	// Add items to host groups dropdown menu
-	var ref=$('#hostGroups');
+	var htmlShards,addServers;
 	var i=0;
 	var c=data['hostGroups'].length;
-	var group;
+	var group,j,d,shard;
 	while (i<c) {
 		group=data['hostGroups'][i];
-		ref.append('<br /><a href="index.html?host='+group+'&refresh='+refreshSpeed+'">'+group+'</a>');
+		addServers='';
+		htmlShards='';
+		j=1;
+		d=group.length;
+		while (j<d) {
+			shard=group[j];
+			addServers+='addServer(\''+shard+'\');';
+			htmlShards+='<br /><a href="javascript:void(0);" class="shard" onclick="addServer(\''+shard+'\');setUrl();">&nbsp;&nbsp;'+shard+'</a>';
+			j++;
+		}
+		$('#hostGroups').append('<br /><a href="javascript:void(0);" onclick="'+addServers+'setUrl();">'+group[0]+'</a>'+htmlShards);
 		i++;
 	}
 }
 
+function addTempHost() {
+	// Add a temporary host to the table (temporary meaning it is not saved into a host group).
+	addServer($('#tempHost').val());
+}
+function removeAllHosts() {
+	// Remove all columns
+	var i=0;
+	while (i<numHosts) {
+		workers[i].terminate();
+		i++;
+	}
+	workers=[];
+	activeHosts={};
+	numHosts=0;
+	$('#stats').html('<span></span><span></span><div></div>');
+	setUrl();
+}
+
 function createHostGroup() {
-	// Add a host group
-	var name=prompt('Enter one host group server:','localhost');
-	if (name) {
-  		data['hostGroups'][data['hostGroups'].length]=name;
-  		window.location='index.html?host='+name+'&refresh='+refreshSpeed;
-  	}
+	// Add a host group. Called when the 'Create' button is clicked
+	$(this).dialog('close');
+	var host=$('#host').val();
+	var groupName=$('#groupName').val();
+	if (host.length && groupName.length) {
+		// Get a list of shards
+		$.ajax({'type': 'GET','dataType': 'json', 'url': 'command-proxy.php?command=l&host='+encodeURIComponent(host)}).done(returnListShards).fail(errorListShards);
+	}
+}
+function returnListShards(json) {
+	var c;
+	if (json.ok && json.shards && (c=json.shards.length)) {
+		// We have received a list of shards
+		var dataArr=[$('#groupName').val()];
+		var addServers='';
+		var htmlShards='';
+		var message='<p>A host group has been created and the following shards have been detected:</p><ul>';
+		var i=0;
+		var shard;
+		while (i<c) {
+			shard=json.shards[i++];
+			dataArr[i]=shard.host;
+			addServers+='addServer(\''+shard.host+'\');';
+			htmlShards+='<br /><a href="javascript:void(0);" class="shard" onclick="addServer(\''+shard.host+'\');setUrl();">&nbsp;&nbsp;'+shard.host+'</a>';
+			message+='<li>'+shard.host+' ('+shard._id+')</li>';
+		}
+		message+='</ul><p>To add a shard to the current display, click on it under the Host Groups dropdown menu.</p>';
+		$('#createHostGroupSuccessfulDialog').html(message).dialog('open');
+		$('#hostGroups').append('<br /><a href="javascript:void(0);" onclick="'+addServers+'setUrl();">'+dataArr[0]+'</a>'+htmlShards);
+		data['hostGroups'][data['hostGroups'].length]=dataArr;
+	} else {
+		// No shards detected
+		console.log('listShards command did not return any shards. Here is the output:');
+		console.log(json);
+		$.ajax({'type': 'GET','dataType': 'json', 'url': 'command-proxy.php?command=s&host='+encodeURIComponent($('#host').val())}).done(returnServerStatus).fail(errorServerStatus);
+	}
+}
+function errorListShards(req) {
+	// Error occurred with request
+	console.log('listShards command returned with an error:');
+	console.log(req);
+	$.ajax({'type': 'GET','dataType': 'json', 'url': 'command-proxy.php?command=s&host='+encodeURIComponent($('#host').val())}).done(returnServerStatus).fail(errorServerStatus);
+}
+function returnServerStatus(json) {
+	if (json.ok && json.host) {
+		// The serverStatus request was successful
+		var groupName=$('#groupName').val();
+		$('#hostGroups').append('<br /><a href="javascript:void(0);" onclick="addServer(\''+json.host+'\');setUrl();">'+groupName+'</a><br /><a href="javascript:void(0);" class="shard" onclick="addServer(\''+json.host+'\');">&nbsp;&nbsp;'+json.host+'</a>');
+		data['hostGroups'][data['hostGroups'].length]=[groupName,json.host];
+		$('#createHostGroupSuccessfulDialog').html('<p>listShards command did not return any shards or an error occurred. However, the specified host is a valid shard, so it has been added to the Host Groups dropdown menu. Further information is in the console log.</p>').dialog('open');
+	} else {
+		errorServerStatus();
+	}
+}
+function errorServerStatus() {
+	// The serverStatus request was not successful
+	$('#createHostGroupSuccessfulDialog').html('<p>Error: listShards command did not return any shards or an error occurred. Also, running serverStatus on the specified host did not return a valid object. Further information is in the console log.</p>').dialog('open');
 }
 
 function getParameterByName(name) {

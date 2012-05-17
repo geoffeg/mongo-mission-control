@@ -22,10 +22,15 @@
 			
 			createHostGroupsMenu();
 			
-			var name = getParameterByName('host');
-			if (name) {
-				addServer({'host': name});
-				$("div#hostGroups a:contains("+name+")").addClass('this');
+			var hosts = getParameterByName('hosts').split(',');
+			var i=0;
+			var c=hosts.length;
+			var host;
+			while (i<c) {
+				if (host=hosts[i]) {
+					addServer(host);
+				}
+				i++;
 			}
 			
 			$('#stats').children().slice(2,3).sortable({'distance': 10, 'axis': 'y'});
@@ -44,6 +49,31 @@
 			
 			if (data['expandRows']){$('#expandRows').click();}
 			if (data['centerColumns']){$('#centerColumns').click();}
+			
+			$('#createHostGroupDialog').dialog({
+				autoOpen: false,
+				resizable: false,
+				show: 'blind',
+				hide: 'blind',
+				width: 500,
+				buttons: {'Create': createHostGroup}
+			});
+			
+			$('#createHostGroupSuccessfulDialog').dialog({
+				autoOpen: false,
+				show: 'blind',
+				hide: 'blind',
+				width: 800
+			});
+			
+			$('#addHost').dialog({
+				autoOpen: false,
+				resizable: false,
+				show: 'blind',
+				hide: 'blind',
+				width: 500,
+				buttons: {'Add Host': addTempHost}
+			});
 		});
 		$(window).unload( saveData );
 
@@ -52,7 +82,7 @@
 
 <BODY>
 	<div class="dropdownContainer">
-		<span style="float:left; width:20%;">&nbsp;</span>
+		<span style="float:left; width:5%;">&nbsp;</span>
 		<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
 			<div class="dropdown">
 				<span onclick="expandAll();">Expand All</span>
@@ -61,15 +91,21 @@
 				<span onclick="restoreSorting();">Restore Original Sorting</span>
 			</div>
 		</span>
+		<span id="columnDropdownParent" class="dropdownParent"><div class="dropdownHeader">Columns</div>
+			<div class="dropdown">
+				<span onclick="$('#addHost').dialog('open');">Add Column (Temporary Host)</span>
+				<span onclick="removeAllHosts();">Remove All Columns</span>
+			</div>
+		</span>
 		<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>
 			<div class="dropdown" id="hostGroups">
-				<span onclick="createHostGroup();">Create Group</span>
+				<span onclick="$('#createHostGroupDialog').dialog('open');">Create Group</span>
 			</div>
 		</span>
 		<span id="prefsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Preferences</div>
 			<div class="dropdown">
 				<span onclick="changeRefreshSpeed();">Change Refresh Speed</span>
-				<span onclick="changeDisplayPrefs();">Edit Display Preferences</span>
+				<span onclick="$('#prefsDialog').dialog('open');">Edit Display Preferences</span>
 			</div>
 		</span>
 	</div>
@@ -80,6 +116,19 @@
 			<input type="checkbox" id="expandRows" /><label for="expandRows">Always expand rows</label>
 			<br />
 			<input type="checkbox" id="centerColumns" /><label for="centerColumns">Center Columns</label>
+		</form>
+	</div>
+	<div id="createHostGroupDialog" title="Create Host Group">
+		<form>
+			<label for="groupName">Name: </label><input type="text" id="groupName" />
+			<br />
+			<label for="host">Host: </label><input type="text" id="host" />
+		</form>
+	</div>
+	<div id="createHostGroupSuccessfulDialog" title="Host Group Creation Successful"></div>
+	<div id="addHost" title="Add Temporary Host">
+		<form>
+			<label for="tempHost">Host: </label><input type="text" id="tempHost" />
 		</form>
 	</div>
 </BODY>
