@@ -1,135 +1,64 @@
 <HTML>
 <HEAD>
 	<title>Mongo Mission Control</title>
-	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
-	<script type="text/javascript" src="js/jquery-ui-1.8.20.custom.min.js"></script>
-	<script type="text/javascript" src="saveData.js"></script>
-	<script type="text/javascript" src="js/mmc.js"></script>
-	<script type="text/javascript" src="js/jquery.qtip/jquery.qtip.min.js"></script>
+	<script type="text/javascript" src="js/jquery/jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="js/jquery/jquery-ui-1.8.20.custom.min.js"></script>
+	<script type="text/javascript" src="js/jquery/jquery.qtip/jquery.qtip.min.js"></script>
+	
+	<script type="text/javascript" src="js/tooltips/jquery.tooltip.pack.js"></script>
 
-	<style id="spanStyle">/* Specifies column width */</style>
+	<script type="text/javascript" src="js/mmc.js"></script>
+	<script type="text/javascript" src="js/helpers/tableManager.js"></script>
+	<script type="text/javascript" src="js/helpers/temporaryHostAdder.js"></script>
+	<script type="text/javascript" src="js/helpers/hostGroupCreator.js"></script>
+	<script type="text/javascript" src="js/helpers/hostGroupsManager.js"></script>
+	<script type="text/javascript" src="js/helpers/hostGroupEditor.js"></script>
+	<script type="text/javascript" src="js/helpers/preferences.js"></script>
+	<script type="text/javascript" src="js/helpers/messenger.js"></script>
+	
+	<script type="text/javascript" src="saveData.js"></script>
+
 	<style id="rowExpandStyle">div.isnotparent>span {height:18px; white-space:nowrap;}</style>
 	<style id="centerColumnsStyle"></style>
 	
-	<link type="text/css" rel="stylesheet" href="css/mmc.css"/>
-	<link type="text/css" rel="stylesheet" href="js/jquery.qtip/jquery.qtip.min.css"/>
-	<link type="text/css" rel="stylesheet" href="css/ui-lightness/jquery-ui-1.8.20.custom.css"/>
+	<link type="text/css" rel="stylesheet" href="css/mmc.css" />
+	<link type="text/css" rel="stylesheet" href="js/jquery/jquery.qtip/jquery.qtip.min.css" />
+	<link type="text/css" rel="stylesheet" href="css/ui-lightness/jquery-ui-1.8.20.custom.css" />
+	<link type="text/css" rel="stylesheet" href="js/tooltips/jquery.tooltip.css" />
 
 	<script language="javascript">
-		var workers = Array();
-		var template = false;
-		$(document).ready(function() {
-			
-			createHostGroupsMenu();
-			
-			var hosts = getParameterByName('hosts').split(',');
-			var i=0;
-			var c=hosts.length;
-			var host;
-			while (i<c) {
-				if (host=hosts[i]) {
-					addServer(host);
-				}
-				i++;
-			}
-			
-			$('#stats').children().slice(2,3).sortable({'distance': 10, 'axis': 'y'});
-			
-			contracts=data['contracts'];
-			
-			$('#prefsDialog').dialog({
-				autoOpen: false,
-				resizable: false,
-				show: 'blind',
-				hide: 'blind'
-			});
-			
-			$('#expandRows').change(setExpandRows);
-			$('#centerColumns').change(setCenterColumns);
-			
-			if (data['expandRows']){$('#expandRows').click();}
-			if (data['centerColumns']){$('#centerColumns').click();}
-			
-			$('#createHostGroupDialog').dialog({
-				autoOpen: false,
-				resizable: false,
-				show: 'blind',
-				hide: 'blind',
-				width: 500,
-				buttons: {'Create': createHostGroup}
-			});
-			
-			$('#createHostGroupSuccessfulDialog').dialog({
-				autoOpen: false,
-				show: 'blind',
-				hide: 'blind',
-				width: 800
-			});
-			
-			$('#addHost').dialog({
-				autoOpen: false,
-				resizable: false,
-				show: 'blind',
-				hide: 'blind',
-				width: 500,
-				buttons: {'Add Host': addTempHost}
-			});
-		});
-		$(window).unload( saveData );
-
+		var mmc;// Only global variable
+		$(document).ready(function() { mmc=new Mmc(data); });
 	</script>
 </HEAD>
 
 <BODY>
 	<div class="dropdownContainer">
-		<span style="float:left; width:5%;">&nbsp;</span>
+		<span style="float:left; width:10%;">&nbsp;</span>
 		<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
 			<div class="dropdown">
-				<span onclick="expandAll();">Expand All</span>
-				<span onclick="collapseAll();">Collapse All</span>
-				<span onclick="restoreHidden();">Restore Hidden Rows</span>
-				<span onclick="restoreSorting();">Restore Original Sorting</span>
+				<span onclick="mmc.expandRows();">Expand All</span>
+				<span onclick="mmc.collapseRows();">Collapse All</span>
+				<span onclick="mmc.restoreHidden();">Restore Hidden Rows</span>
+				<span onclick="mmc.restoreSorting();">Restore Original Sorting</span>
 			</div>
 		</span>
 		<span id="columnDropdownParent" class="dropdownParent"><div class="dropdownHeader">Columns</div>
 			<div class="dropdown">
-				<span onclick="$('#addHost').dialog('open');">Add Column (Temporary Host)</span>
-				<span onclick="removeAllHosts();">Remove All Columns</span>
+				<span onclick="mmc.addTemporaryHost();">Add Column (Temporary Host)</span>
+				<span onclick="mmc.reset();">Remove All Columns</span>
 			</div>
 		</span>
 		<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>
-			<div class="dropdown" id="hostGroups">
-				<span onclick="$('#createHostGroupDialog').dialog('open');">Create Group</span>
-			</div>
+			<div class="dropdown" id="hostGroups"></div>
 		</span>
 		<span id="prefsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Preferences</div>
 			<div class="dropdown">
-				<span onclick="changeRefreshSpeed();">Change Refresh Speed</span>
-				<span onclick="$('#prefsDialog').dialog('open');">Edit Display Preferences</span>
+				<span onclick="mmc.changeRefreshSpeed();">Change Refresh Speed</span>
+				<span onclick="mmc.openPreferences();">Edit Display Preferences</span>
 			</div>
 		</span>
 	</div>
-	<br /><br />
-	<div id="stats" class="isparent"><span></span><span></span><div></div></div>
-	<div id="prefsDialog" title="Display Preferences">
-		<form>
-			<input type="checkbox" id="expandRows" /><label for="expandRows">Always expand rows</label>
-			<br />
-			<input type="checkbox" id="centerColumns" /><label for="centerColumns">Center Columns</label>
-		</form>
-	</div>
-	<div id="createHostGroupDialog" title="Create Host Group">
-		<form>
-			<label for="groupName">Name: </label><input type="text" id="groupName" />
-			<br />
-			<label for="host">Host: </label><input type="text" id="host" />
-		</form>
-	</div>
-	<div id="createHostGroupSuccessfulDialog" title="Host Group Creation Successful"></div>
-	<div id="addHost" title="Add Temporary Host">
-		<form>
-			<label for="tempHost">Host: </label><input type="text" id="tempHost" />
-		</form>
-	</div>
+	<br /><br /><!-- Not a mistake; to separate the menu from the table. -->
 </BODY>
 </HTML>

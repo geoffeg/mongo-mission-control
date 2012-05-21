@@ -1,1 +1,1 @@
-var data={"hostGroups":[],"contracts":[],"hides":[],"sort":{},"expandRows":false,"centerColumns":false}
+var data={"hostGroups":[],"collapses":[],"hides":[],"sort":{},"expandRows":false,"centerColumns":false}

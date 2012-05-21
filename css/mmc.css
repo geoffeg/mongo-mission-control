@@ -50,13 +50,34 @@ div.dropdown>span:hover,div.dropdown>a:hover {
 background-color:#696969;
 }
 
-div.dropdown>a {
+div.dropdown a {
 color:#FFF;
 text-decoration: none;
 }
 
 div.dropdown>a.this {
 color:#000;
+}
+
+/* Host Groups edit icon css */
+
+div#hostGroups>span>a>img {
+margin-left:5px;
+margin-top:2px;
+visibility:hidden;
+position:absolute;
+}
+
+div#hostGroups>span:hover>a>img {
+visibility:visible;
+}
+
+img.shardValid, img.shardInvalid {
+vertical-align:middle;
+}
+
+img.shardValid {
+cursor:pointer;
 }
 
 /*
@@ -69,8 +90,27 @@ width:95%;
 /* Form css */
 
 input[type=text] {
-width:400px;
+width:350px;
 }
+
+label:not(.fullLabel) {
+width:115px;
+display:inline-block;
+}
+
+ul#shardsList>li>a>img {
+padding-left:5px;
+visibility:hidden;
+}
+
+ul#shardsList>li:hover>a>img {
+visibility:visible;
+}
+
+a#deleteHostGroup {
+margin-left:10px;
+}
+
 
 /* Row css */
 
@@ -83,6 +123,11 @@ float:left;
 white-space:nowrap;
 }
 
+div.isparent>span:first-child>span:first-child {
+cursor:pointer;
+text-decoration:underline;
+}
+
 div.isnotparent>span {
 float:left;
 overflow:hidden;
@@ -93,7 +138,7 @@ div.isparent div {
 overflow:hidden;
 }
 
-div.isparent>span>a,div.isnotparent>span>span {
+div.isparent>span>span,div.isnotparent>span>span {
 color:#33D01E;
 }
 
@@ -113,13 +158,19 @@ white-space:normal;
 
 /* Row header x image css */
 
-div.isparent>span>a>img,div.isnotparent>span>span>a>img {
+div>span>span>a>img {
 padding-left:5px;
 margin-top:2px;
 visibility:hidden;
 position:absolute;
 }
 
-div.isparent>span:hover>a>img,div.isnotparent>span:hover>span>a>img {
+div.rowHover>span>span>a>img {
 visibility:visible;
+}
+
+/* Tooltip */
+
+div#tooltip {
+color: #000;
 }
