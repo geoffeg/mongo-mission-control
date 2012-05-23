@@ -1,40 +1,15 @@
-/*
-Sample HTML of a row
-
-<div id="[level 0 item]" class="isparent"><!-- Parent Row -->
-	<span>
-		<a class="level_0">Parent Row Header</a>
-		<a><img src="images/deleteButton.png" /></a>
-	</span>
-	<br />
-	<div>
-		<div id="[level 1 item]" class="isnotparent"><!-- Child Row -->
-			<span>
-				<span class="level_1">
-					Row Header
-					<a><img src="images/deleteButton.png" /></a>
-				</span>
-			</span>
-			<span>Host 1 Value</span><!-- Column 1 -->
-			<span>Host 2 Value</span><!-- Column 2 -->
-			<span>...</span>
-		</div>
-	</div>
-</div>
-
-*/
-
 if (data==undefined){var data={};}
 
 function Mmc(data) {
 	
-	this.workers = [];// Array of workers. There is one worker for each host.
-	this.activeHosts = {};// One key for each host.
+	this.workers=[];// Array of workers. There is one worker for each host.
+	this.activeHosts={};// One key for each host.
+	this.mongoSs={};
 	
 	this.restoreSort=false;// Whether to restore original sort (true) or store current row sort to saveData.js (false) in saveData().
 	
 	// Set default data
-	if (data['hostGroups']==undefined){data['hostGroups']=[];}
+	if (data['hosts']==undefined){data['hosts']=[];}
 	if (data['collapses']==undefined){data['collapses']=[];}
 	if (data['hides']==undefined){data['hides']=[];}
 	if (data['sort']==undefined){data['sort']={};}
@@ -45,7 +20,25 @@ function Mmc(data) {
 	
 	var _self=this;
 	
-	this.addServer=function(name) {
+	this.addMongoS=function(url,auth) {
+		urlEncoded=encodeURIComponent(url);
+		$.ajax({'type': 'GET','dataType': 'json', 'url': 'command-proxy.php?command=l&host='+urlEncoded}).done(function(data){_self.returnShards(data,url,auth);}).fail(function(){_self.addShard(url,auth);});
+		_self.mongoSs[urlEncoded]=true;
+	}
+	this.returnShards=function(json,url,auth) {
+		if (json.ok && json.shards && (c=json.shards.length)) {
+			// We have received a list of shards
+			var i=0;
+			while (i<c) {
+				_self.addShard(auth+json.shards[i].host,auth);
+				i++;
+			}
+		} else {
+			_self.addShard(url,auth);
+		}
+	}
+	
+	this.addShard=function(name,auth) {
 		if (this.activeHosts[name]) {
 			// Only add new hosts.
 			return false;
@@ -55,7 +48,7 @@ function Mmc(data) {
 		console.log("Added server: "+name);
 		
 		// Highlight shard in Host Groups dropdown menu
-		this.hostGroupsManager.highlightHost(name);
+		this.hostsManager.highlightHost(name);
 		
 		var actions = {
 			log: function(message) {
@@ -65,7 +58,7 @@ function Mmc(data) {
 				this.mmc.tableManager.update(hostData.id, "#stats", hostData, -1);
 			},
 			addServer: function(name) {
-				if (this.mmc.addServer(name)) {
+				if (this.mmc.addShard(this.auth+name,this.auth)) {
 					this.mmc.setUrl();
 				}
 			}
@@ -96,6 +89,8 @@ function Mmc(data) {
 		config.id=this.tableManager.addCol();
 		config.speed=refreshSpeed*1000;// Refresh speed
 		
+		worker.auth=auth;
+		
 		// Start our worker
 		worker.postMessage(JSON.stringify({
 			action: 'start',
@@ -111,7 +106,7 @@ function Mmc(data) {
 		// Usually called right after addServer or a removal of servers.
 		var hosts='';
 		var host;
-		for (host in this.activeHosts) {
+		for (host in this.mongoSs) {
 			hosts+=','+host;
 		}
 		history.pushState({}, 'Mongo Mission Control', 'index.html?hosts='+hosts.slice(1)+'&refresh='+refreshSpeed);
@@ -157,7 +152,7 @@ function Mmc(data) {
 	this.saveData=function() {
 		// Page is closing - save data for next time
 		// Send ajax request that will save data to saveData.js
-		var url = "command-proxy.php?command=d&data="+encodeURIComponent(JSON.stringify({'hostGroups':data['hostGroups'], 'collapses': _self.tableManager.collapses, 'hides': _self.tableManager.hides, 'sort': _self.tableManager.saveSort(), 'expandRows': _self.data['expandRows'], 'centerColumns': _self.data['centerColumns']}));
+		var url = "command-proxy.php?command=d&data="+encodeURIComponent(JSON.stringify({'hosts':data['hosts'], 'collapses': _self.tableManager.collapses, 'hides': _self.tableManager.hides, 'sort': _self.tableManager.saveSort(), 'expandRows': _self.data['expandRows'], 'centerColumns': _self.data['centerColumns']}));
 		var http = new XMLHttpRequest();
 		http.open("GET", url, false);
 		http.send(null);
@@ -175,13 +170,17 @@ function Mmc(data) {
 	
 	// Simple routing functions
 	this.addTemporaryHost=function() { this.temporaryHostAdder.open(); }
-	this.openCreateHostGroup=function() { _self.hostGroupCreator.open(); }
-	this.createHostGroup=function(name,host) { this.hostGroupsManager.listShards(name,host); }
-	this.updateHostGroup=function(name,data) { this.hostGroupsManager.updateHostGroup(name,data); }
-	this.deleteHostGroup=function(name) { this.hostGroupsManager.deleteHostGroup(name); }
-	this.openEditHostGroup=function(ref) { _self.hostGroupEditor.open(ref); }
+	this.openCreateHost=function() {
+		var arr=['','','localhost','27017','','localhost:27017'];
+		var id=_self.hostsManager.addHost(arr);
+		_self.hostEditor.open(arr,id);
+	}
+	//this.createHost=function(name, username, password, host, port) { this.hostsManager.listShards(name, username, password, host, port); }
+	this.updateHost=function(id, arr) { this.hostsManager.updateHost(id, arr); }
+	this.deleteHost=function(id) { this.hostsManager.deleteHost(id); }
+	this.openEditHost=function(arr, id) { _self.hostEditor.open(arr, id); }
 	this.openPreferences=function() { this.preferences.open(); }
-	this.message=function(title,body) { _self.messenger.message(title,body); };
+	this.message=function(title, body) { _self.messenger.message(title, body); };
 	
 	this.expandRows=function() { this.tableManager.expandAll(); }
 	this.collapseRows=function() { this.tableManager.collapseAll(); }
@@ -194,6 +193,7 @@ function Mmc(data) {
 		}
 		this.workers=[];
 		this.activeHosts={};
+		this.mongoSs={};
 		this.tableManager.numCols=0;
 		this.tableManager.reset();
 		this.setUrl();
@@ -213,23 +213,27 @@ function Mmc(data) {
 	}
 	
 	var refreshSpeed=this.getParameterByName('refresh');
-	if (!refreshSpeed){refreshSpeed=1;}
+	if (!refreshSpeed){refreshSpeed=5;}
 	
 	this.tableManager=new TableManager(this, data['collapses'], data['hides'], data['sort']);
-	this.temporaryHostAdder=new TemporaryHostAdder(this);
-	this.hostGroupCreator=new HostGroupCreator(this);
-	this.hostGroupEditor=new HostGroupEditor(this);
-	this.hostGroupsManager=new HostGroupsManager(this,$('#hostGroups'),data['hostGroups']);
+	this.hostEditor=new HostEditor(this);
+	this.hostsManager=new HostsManager(this,$('#hosts'),data['hosts']);
 	this.preferences=new Preferences(this, data['expandRows'], data['centerColumns']);
 	this.messenger=new Messenger();
 	
 	var hosts=this.getParameterByName('hosts').split(',');
 	var i=0;
 	var c=hosts.length;
-	var host;
+	var host,pos,auth;
 	while (i<c) {
-		if (host=hosts[i]) {
-			this.addServer(host);
+		if (host=decodeURIComponent(hosts[i])) {
+			pos=host.indexOf('@');
+			if (pos==-1) {
+				auth='';
+			} else {
+				auth=host.substr(0,pos+1);
+			}
+			this.addMongoS(host,auth);
 		}
 		i++;
 	}

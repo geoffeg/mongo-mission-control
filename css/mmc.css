@@ -29,7 +29,7 @@ display:none;
 padding:4px;
 }
 
-div.dropdown#hostGroups {
+div.dropdown#hosts {
 /* Host Groups dropdown needs to be wider. */
 width:30%;
 }
@@ -61,17 +61,17 @@ color:#000;
 
 /* Host Groups edit icon css */
 
-div#hostGroups>span>a>img {
+div#hosts>span.shard>a>img {
 margin-left:5px;
-margin-top:2px;
+margin-top:1px;
 visibility:hidden;
 position:absolute;
 }
 
-div#hostGroups>span:hover>a>img {
+div#hosts>span.shard:hover>a>img {
 visibility:visible;
 }
-
+/*
 img.shardValid, img.shardInvalid {
 vertical-align:middle;
 }
@@ -79,7 +79,7 @@ vertical-align:middle;
 img.shardValid {
 cursor:pointer;
 }
-
+*/
 /*
 div.dropdown>a.shard {
 padding-left:5%;
@@ -96,6 +96,7 @@ width:350px;
 label:not(.fullLabel) {
 width:115px;
 display:inline-block;
+height:32px;
 }
 
 ul#shardsList>li>a>img {
@@ -107,11 +108,22 @@ ul#shardsList>li:hover>a>img {
 visibility:visible;
 }
 
-a#deleteHostGroup {
+a#deletehost {
 margin-left:10px;
 }
 
+ul#shards {
+display:inline-block;
+margin:0;
+}
 
+/*
+input.textEdit:not(:focus) {
+background-color:inherit;
+border:none;
+padding:3px;
+}
+*/
 /* Row css */
 
 div.isparent,div.isnotparent {
@@ -156,7 +168,7 @@ div.isnotparent.rowHover>span {
 white-space:normal;
 }
 
-/* Row header x image css */
+/* Row header icons css */
 
 div>span>span>a>img {
 padding-left:5px;

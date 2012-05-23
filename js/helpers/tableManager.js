@@ -11,6 +11,8 @@ function TableManager(mmc, collapses, hides, sorting) {
 	var spanStyle=$('<style></style>');
 	$('HEAD').append(spanStyle);
 	
+	this.mmc=mmc;
+	
 	this.numCols=0;
 	
 	this.collapses=collapses;

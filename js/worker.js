@@ -76,7 +76,7 @@ function slowServer() {
 	if (reqTimer!=-1) {
 		reqTimer=-1;
 		if (prevData.host) {
-			var result = { action: 'serverStatus', 'returnValue' : {'host': prevData.host, 'id': config.id, 'requestTime': '<img src="images/slowServer.png" width="16" /> '+(new Date().getTime()-reqTime)+'ms'} };
+			var result = { action: 'serverStatus', 'returnValue' : {'host': prevData.host, 'id': config.id, 'requestTime': '<img src="images/slowServer.png" width="16" /> &gt;'+slowSpeed+'ms'} };
 			postMessage(JSON.stringify(result));
 		}
 	}

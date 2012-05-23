@@ -24,19 +24,26 @@ function runCommand($command) {
 	switch($command) {
 		case "l":
 			// List shards
-			//if (($url=strstr($_GET['host'],':',true))==false){$url=$_GET['host'];}
-			$m = new Mongo("mongodb://".rawurldecode($_GET['host']));
-			$m->setSlaveOkay(true);
-			$resp = $m->admin->command(array('listShards' => 1));
+			try {
+				$m = new Mongo("mongodb://".rawurldecode($_GET['host']));
+				$m->setSlaveOkay(true);
+				$resp = $m->admin->command(array('listShards' => 1));
+			} catch (Exception $e) {
+				$resp=array('ok' => 'Caught Error','message' => $e->getMessage(),'line' => $m->line);
+			}
 			return $resp;
 			break;
 		case "s":
 			// Get stats
-			$m = new Mongo("mongodb://".rawurldecode($_GET['host']), array('replicaSet' => false));
-			$m->setSlaveOkay(true);
-			$resp = $m->stats->command(array('serverStatus' => 1));
-			$replSetStatus = $m->admin->command(array('replSetGetStatus' => 1));
-			$resp['MyState'] = $replSetStatus['myState'];
+			try {
+				$m = new Mongo("mongodb://".rawurldecode($_GET['host']), array('replicaSet' => false));
+				$m->setSlaveOkay(true);
+				$resp = $m->stats->command(array('serverStatus' => 1));
+				$replSetStatus = $m->admin->command(array('replSetGetStatus' => 1));
+				$resp['MyState'] = $replSetStatus['myState'];
+			} catch (Exception $e) {
+				$resp=array('ok' => 'Caught Error','message' => $e->getMessage(),'line' => $m->line);
+			}
 			return $resp;
 			break;
 		case "d":

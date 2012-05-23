@@ -9,10 +9,8 @@
 
 	<script type="text/javascript" src="js/mmc.js"></script>
 	<script type="text/javascript" src="js/helpers/tableManager.js"></script>
-	<script type="text/javascript" src="js/helpers/temporaryHostAdder.js"></script>
-	<script type="text/javascript" src="js/helpers/hostGroupCreator.js"></script>
-	<script type="text/javascript" src="js/helpers/hostGroupsManager.js"></script>
-	<script type="text/javascript" src="js/helpers/hostGroupEditor.js"></script>
+	<script type="text/javascript" src="js/helpers/hostsManager.js"></script>
+	<script type="text/javascript" src="js/helpers/hostEditor.js"></script>
 	<script type="text/javascript" src="js/helpers/preferences.js"></script>
 	<script type="text/javascript" src="js/helpers/messenger.js"></script>
 	
@@ -27,7 +25,7 @@
 	<link type="text/css" rel="stylesheet" href="js/tooltips/jquery.tooltip.css" />
 
 	<script language="javascript">
-		var mmc;// Only global variable
+		var mmc;// Only global variable. Completely object oriented! :)
 		$(document).ready(function() { mmc=new Mmc(data); });
 	</script>
 </HEAD>
@@ -45,12 +43,11 @@
 		</span>
 		<span id="columnDropdownParent" class="dropdownParent"><div class="dropdownHeader">Columns</div>
 			<div class="dropdown">
-				<span onclick="mmc.addTemporaryHost();">Add Column (Temporary Host)</span>
 				<span onclick="mmc.reset();">Remove All Columns</span>
 			</div>
 		</span>
-		<span id="hostGroupsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Host Groups</div>
-			<div class="dropdown" id="hostGroups"></div>
+		<span id="hostsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Hosts</div>
+			<div class="dropdown" id="hosts"></div>
 		</span>
 		<span id="prefsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Preferences</div>
 			<div class="dropdown">
