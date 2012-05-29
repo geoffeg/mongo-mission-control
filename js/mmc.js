@@ -1,169 +1,246 @@
-var activeHosts = {};
+if (data==undefined){var data={};}
 
-function addReplicaSet(config) {
-	getReplicaSetStatus(config['host'], addServer);
-
-}
-
-
-function addServer(config) {
-	console.log("add new host");
-	if (activeHosts[config.host]) {
-		console.log(config.host + " already exists, skipping");
-		return;
+function Mmc(data) {
+	
+	this.workers=[];// Array of workers. There is one worker for each host.
+	this.activeHosts={};// One key for each host.
+	this.mongoSs={};
+	
+	this.restoreSort=false;// Whether to restore original sort (true) or store current row sort to saveData.js (false) in saveData().
+	
+	// Set default data
+	if (data['hosts']==undefined){data['hosts']=[];}
+	if (data['collapses']==undefined){data['collapses']=[];}
+	if (data['hides']==undefined){data['hides']=[];}
+	if (data['sort']==undefined){data['sort']={};}
+	if (data['expandRows']==undefined){data['expandRows']=false;}
+	if (data['centerColumns']==undefined){data['centerColumns']=false;}
+	
+	this.data=data;
+	
+	var _self=this;
+	
+	this.addMongoS=function(url,auth) {
+		urlEncoded=encodeURIComponent(url);
+		$.ajax({'type': 'GET','dataType': 'json', 'url': 'command-proxy.php?command=l&host='+urlEncoded}).done(function(data){_self.returnShards(data,url,auth);}).fail(function(){_self.addShard(url,auth);});
+		_self.mongoSs[urlEncoded]=true;
 	}
-	activeHosts[config.host] = "active";
-	var actions = {
-		sum: function(result) {
-			console.log('The result was ' + result);
-		},
-		log: function(message) {
-			console.log(message);
-		},
-		serverStatus: function(message) {
-			updateHost(message);
-		}
-	};
-
-	var worker = new Worker("js/worker.js");
-	// worker.postMessage({action: "setHostName", args: ["hostName"]})
-
-	worker.onmessage = function(event) {
-		var data        = JSON.parse(event.data), // parse the data
-				action      = data.action,            // get the action
-				returnValue = data.returnValue;       // get the returnValue
-
-		// if we understand the action
-		if (action in actions) {
-			// handle the returnValue for the action
-			actions[action].call(this,returnValue);
+	this.returnShards=function(json,url,auth) {
+		if (json.ok && json.shards && (c=json.shards.length)) {
+			// We have received a list of shards
+			var i=0;
+			while (i<c) {
+				_self.addShard(auth+json.shards[i].host,auth);
+				i++;
+			}
 		} else {
-			// throw an error? our worker isn't communicating properly
+			_self.addShard(url,auth);
 		}
-	};
-
-	worker.postMessage(JSON.stringify({
-		action: 'config',
-		args: [config]
-	}));
-	return worker;
-}
-
-function getUrlParam(param,s) { 
-	s = s ? s : window.location.search; 
-	var re = new RegExp('&'+param+'(?:=([^&]*))?(?=&|$)','i'); 
-	return (s=s.replace(/^\?/,'&').match(re)) ? (typeof s[1] == 'undefined' ? '' : decodeURIComponent(s[1])) : undefined; 
-} 
-
-function getReplicaSetStatus(hostName, callback) {
-	$.ajax({
-		url: "command-proxy.php?host=" + hostName + "&command=replSetGetStatus", 
-  	timeout: 5000,
-	  success: function(data) {
-			$.each(data['members'], function(index, val) {
-				var config = {host: val['name']};
-				callback(config);
-			});
-	});
-}
-
-var previousData = {};
-
-function addHost(hostData) {
-	var all_values = {"previousValues" : hostData, "currentValues" : hostData, "host" : hostData.host};
-	if (hostData['replicaSet'] && hostData['replicaSet']['stateStr'] == "PRIMARY") {
-		$("#hostHeaderTemplate").tmpl(all_values).insertAfter("#updatetime");
-		$("#statusTemplate").tmpl(all_values).insertAfter("#mongo-stats-column-labels");
-	} else {
-		var template = Handlebars.compile($("#hostHeaderTemplate").html());
-		$("#mongo-stats-header").append(template(all_values));
-		template = Handlebars.compile($("#statusTemplate").html());
-		$("#mongo-status-table").append(template(all_values));
 	}
-	previousData[hostData.host] = hostData;
-	calculateColumnWidths();
-}
-
-
-function updateHost(hostData) {
-	console.log(hostData);
-	if (hostData.host in previousData) {
-		var all_values = {"previousValues" : previousData[hostData.host], "currentValues" : hostData, "host" : hostData.host};
-		var template = Handlebars.compile($("#statusTemplate").html());
-		$("#host-column-" + getCssHostName(hostData.host)).replaceWith(template(all_values));
-		previousData[hostData.host] = hostData;
-		calculateColumnWidths();
-	} else {
-		addHost(hostData);
-	}
-}
-
-function calculateColumnWidths() {
-	var widthAvailable = $("#mongo-status-table").innerWidth() - $("#mongo-stats-column-labels").outerWidth();
-	var columnsShown = $(".host-column").length - 1;
-	var widthPerColumn = Math.floor(widthAvailable / columnsShown);
-	$(".host-column[id!=mongo-stats-column-labels]").css("width", widthPerColumn + "px");
-	$(".host-column[id!=mongo-stats-column-labels]").each(function(i) {
-		$(this).css("width", widthPerColumn + "px");
-		var thisHostName = $(this).attr('id').match(/(?:[a-z]+\-){2}(.*)/);
-		$("#host-header-" + thisHostName[1]).css("width", widthPerColumn + "px");
-		$("#host-header-" + thisHostName[1]).css("left", $(this).position().left);
-	});
-}
-
-
-function getDiffVals(currentValue, previousValue, lastUpdate) {
-	var secondsSinceLastRequest = parseInt((new Date().getTime() - lastUpdate) / 1000)
-		return parseInt((currentValue - previousValue) / secondsSinceLastRequest);
-}
-
-function getCssHostName(hostName) {
-	return hostName.replace(/\./ig, "-").replace(/:/,'');
-}
-
-
-// Handlebars block helpers
-Handlebars.registerHelper('divByThou', function(val) {
-	return val / 1000;
-});
-
-Handlebars.registerHelper('getNiceDate', function(dateObj) {
-	return sprintf("%02d:%02d:%02d<BR/>%02d/%02d", dateObj.getHours(), dateObj.getMinutes(), dateObj.getSeconds(), dateObj.getMonth(), dateObj.getDate());
-});
-
-Handlebars.registerHelper('getDiffVals', function(currentValue, previousValue, lastUpdate) {
-		return getDiffVals(currentValue, previousValue, lastUpdate);
-});
-
-Handlebars.registerHelper('getLockRatio', function(currentLockTime, previousLockTime, currentTotalTime, previousTotalTime) {
-	var lockTimeDelta = currentLockTime - previousLockTime;
-	var currentTotalDelta = currentTotalTime - previousTotalTime;
-	var lockRatio = lockTimeDelta / currentTotalDelta;
-	return sprintf("%3.2f", lockRatio * 100);
-});
-
-Handlebars.registerHelper('getGaugeVal', function(dataExpr, currentValue, lastUpdate) {
-	if (lastUpdate == undefined) return 0;
-	var diff = getDiffVals(dataExpr, currentValue, lastUpdate) / (new Date().getTime() / 1000 - lastUpdate / 1000);
-	return sprintf("%10.2f", diff / 1024);
-});
-
-Handlebars.registerHelper('getCssHostName', function(hostName) {
-	return hostName.replace(/\./ig, "-").replace(/:/,'');
-});
-
-Handlebars.registerHelper('cleanHostName', function(hostName) {
-	return getCssHostName(hostName);
-});
-
-Handlebars.registerHelper('sprintf', function(format, val) {
-	return sprintf(format, val);
-});
-
-Handlebars.registerHelper('isPrimaryOrStandalone', function(hostData) {
-	console.log(hostData);
-	if ("replicaSet" in hostData && hostData.replicaSet.stateStr === "PRIMARY") {
+	
+	this.addShard=function(name,auth) {
+		if (this.activeHosts[name]) {
+			// Only add new hosts.
+			return false;
+		}
+		this.activeHosts[name] = true;
+		
+		console.log("Added server: "+name);
+		
+		// Highlight shard in Host Groups dropdown menu
+		this.hostsManager.highlightHost(name);
+		
+		var actions = {
+			log: function(message) {
+				console.log(message);
+			},
+			serverStatus: function(hostData) {
+				this.mmc.tableManager.update(hostData.id, "#stats", hostData, -1);
+			},
+			addServer: function(name) {
+				if (this.mmc.addShard(this.auth+name,this.auth)) {
+					this.mmc.setUrl();
+				}
+			}
+		};
+	
+		// Create new worker
+		var worker = new Worker("js/worker.js");
+	
+		worker.onmessage = function(event) {
+			// Called when we receive a message from our worker.
+			var data = JSON.parse(event.data);
+			var action = data.action;// Action to call
+			var arg = data.returnValue;// Arguments
+	
+			// If the action is defined
+			if (action in actions) {
+				// Run action with one argument
+				actions[action].call(this,arg);
+			} else {
+				// Invalid action
+				console.log('Invalid action: '+action);
+			}
+		};
+		
+		worker.mmc=this;
+	
+		var config={'host': name};
+		config.id=this.tableManager.addCol();
+		config.speed=refreshSpeed*1000;// Refresh speed
+		
+		worker.auth=auth;
+		
+		// Start our worker
+		worker.postMessage(JSON.stringify({
+			action: 'start',
+			args: [config]
+		}));
+		
+		this.workers[this.workers.length] = worker;
+		
 		return true;
 	}
-	return false;
-});
+	
+	this.setUrl=function() {
+		// Usually called right after addServer or a removal of servers.
+		var hosts='';
+		var host;
+		for (host in this.mongoSs) {
+			hosts+=','+host;
+		}
+		history.pushState({}, 'Mongo Mission Control', 'index.html?hosts='+hosts.slice(1)+'&refresh='+refreshSpeed);
+	}
+	
+	this.restoreSorting=function() {
+		// Restore original sorting. Called from menu.
+		this.tableManager.sorting={};
+		this.tableManager.reset();
+	}
+	this.changeRefreshSpeed=function() {
+		// Change refresh speed. Called from menu.
+		var speed=prompt('Enter new refresh speed in seconds:','5');
+		if (speed) {
+			refreshSpeed=speed;
+			this.setUrl();
+			location.reload(true);
+		}
+	}
+	this.setExpandRows=function() {
+		// Set whether to expand rows all the time or just on hover
+		if (this.checked) {
+			// All the time
+			$('#rowExpandStyle').html('div.isnotparent>span {height:inherit; white-space:normal;}');
+		} else {
+			// Just on hover
+			$('#rowExpandStyle').html('div.isnotparent>span {height:18px; white-space:nowrap;}');
+		}
+		_self.data['expandRows']=this.checked;
+	}
+	this.setCenterColumns=function() {
+		// Set whether to center column contents
+		if (this.checked) {
+			// Center
+			$('#centerColumnsStyle').html('div.isnotparent>span:not(:first-child) {text-align: center;}');
+		} else {
+			// Don't center
+			$('#centerColumnsStyle').html('');
+		}
+		_self.data['centerColumns']=this.checked;
+	}
+	
+	this.saveData=function() {
+		// Page is closing - save data for next time
+		// Send ajax request that will save data to saveData.js
+		var url = "command-proxy.php?command=d&data="+encodeURIComponent(JSON.stringify({'hosts':data['hosts'], 'collapses': _self.tableManager.collapses, 'hides': _self.tableManager.hides, 'sort': _self.tableManager.saveSort(), 'expandRows': _self.data['expandRows'], 'centerColumns': _self.data['centerColumns']}));
+		var http = new XMLHttpRequest();
+		http.open("GET", url, false);
+		http.send(null);
+	}
+	
+	this.applyTooltips=function() {
+		$('[title]').tooltip({ 
+			track: true,
+			delay: 500,
+			showURL: false,
+			showBody: "\n",
+			fade: 0
+		});
+	}
+	
+	// Simple routing functions
+	this.addTemporaryHost=function() { this.temporaryHostAdder.open(); }
+	this.openCreateHost=function() {
+		var arr=['','','localhost','27017','','localhost:27017'];
+		var id=_self.hostsManager.addHost(arr);
+		_self.hostEditor.open(arr,id);
+	}
+	//this.createHost=function(name, username, password, host, port) { this.hostsManager.listShards(name, username, password, host, port); }
+	this.updateHost=function(id, arr) { this.hostsManager.updateHost(id, arr); }
+	this.deleteHost=function(id) { this.hostsManager.deleteHost(id); }
+	this.openEditHost=function(arr, id) { _self.hostEditor.open(arr, id); }
+	this.openPreferences=function() { this.preferences.open(); }
+	this.message=function(title, body) { _self.messenger.message(title, body); };
+	
+	this.expandRows=function() { this.tableManager.expandAll(); }
+	this.collapseRows=function() { this.tableManager.collapseAll(); }
+	this.restoreHidden=function() { this.tableManager.restoreHidden(); }
+	
+	this.reset=function() {
+		var i=this.tableManager.numCols;
+		while (i--) {
+			this.workers[i].terminate();
+		}
+		this.workers=[];
+		this.activeHosts={};
+		this.mongoSs={};
+		this.tableManager.numCols=0;
+		this.tableManager.reset();
+		this.setUrl();
+	}
+	
+	this.getParameterByName=function(name) {
+		// Get query from the url
+		name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+		var regexS = "[\\?&]" + name + "=([^&#]*)";
+		var regex = new RegExp(regexS);
+		var results = regex.exec(window.location.search);
+		if(results == null) {
+			return "";
+		} else {
+			return decodeURIComponent(results[1].replace(/\+/g, " "));
+		}
+	}
+	
+	var refreshSpeed=this.getParameterByName('refresh');
+	if (!refreshSpeed){refreshSpeed=5;}
+	
+	this.tableManager=new TableManager(this, data['collapses'], data['hides'], data['sort']);
+	this.hostEditor=new HostEditor(this);
+	this.hostsManager=new HostsManager(this,$('#hosts'),data['hosts']);
+	this.preferences=new Preferences(this, data['expandRows'], data['centerColumns']);
+	this.messenger=new Messenger();
+	
+	var hosts=this.getParameterByName('hosts').split(',');
+	var i=0;
+	var c=hosts.length;
+	var host,pos,auth;
+	while (i<c) {
+		if (host=decodeURIComponent(hosts[i])) {
+			pos=host.indexOf('@');
+			if (pos==-1) {
+				auth='';
+			} else {
+				auth=host.substr(0,pos+1);
+			}
+			this.addMongoS(host,auth);
+		}
+		i++;
+	}
+			
+	collapses=data['collapses'];
+	
+	this.applyTooltips();
+	
+	$(window).unload( this.saveData );
+}

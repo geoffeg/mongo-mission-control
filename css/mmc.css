@@ -1,0 +1,188 @@
+BODY {
+color:#FFF;
+font-family:"Inconsolata", monospace;
+background:#000;
+margin:0;
+}
+
+span.dropdownParent {
+width:20%;
+height:26px;
+background-color:gray;
+border:1px solid #FFF;
+float:left;
+cursor:default;
+}
+
+div.dropdownHeader {
+padding:4px;
+text-align:center;
+}
+
+div.dropdown {
+position:absolute;
+width:19.5%;
+margin-top:1px;
+background-color:#A9A9A9;
+border:1px solid #FFF;
+display:none;
+padding:4px;
+}
+
+div.dropdown#hosts {
+/* Host Groups dropdown needs to be wider. */
+width:30%;
+}
+
+span.dropdownParent:hover div.dropdown {
+display:inline;
+}
+
+div.dropdown>span,div.dropdown>a {
+width:100%;
+padding-top:4px;
+padding-bottom:4px;
+float:left;
+cursor:default;
+}
+
+div.dropdown>span:hover,div.dropdown>a:hover {
+background-color:#696969;
+}
+
+div.dropdown a {
+color:#FFF;
+text-decoration: none;
+}
+
+div.dropdown>a.this {
+color:#000;
+}
+
+/* Host Groups edit icon css */
+
+div#hosts>span.shard>a>img {
+margin-left:5px;
+margin-top:1px;
+visibility:hidden;
+position:absolute;
+}
+
+div#hosts>span.shard:hover>a>img {
+visibility:visible;
+}
+/*
+img.shardValid, img.shardInvalid {
+vertical-align:middle;
+}
+
+img.shardValid {
+cursor:pointer;
+}
+*/
+/*
+div.dropdown>a.shard {
+padding-left:5%;
+width:95%;
+}
+*/
+
+/* Form css */
+
+input[type=text] {
+width:350px;
+}
+
+label:not(.fullLabel) {
+width:115px;
+display:inline-block;
+height:32px;
+}
+
+ul#shardsList>li>a>img {
+padding-left:5px;
+visibility:hidden;
+}
+
+ul#shardsList>li:hover>a>img {
+visibility:visible;
+}
+
+a#deletehost {
+margin-left:10px;
+}
+
+ul#shards {
+display:inline-block;
+margin:0;
+}
+
+/*
+input.textEdit:not(:focus) {
+background-color:inherit;
+border:none;
+padding:3px;
+}
+*/
+/* Row css */
+
+div.isparent,div.isnotparent {
+padding: 2px 0px;
+}
+
+div.isparent>span {
+float:left;
+white-space:nowrap;
+}
+
+div.isparent>span:first-child>span:first-child {
+cursor:pointer;
+text-decoration:underline;
+}
+
+div.isnotparent>span {
+float:left;
+overflow:hidden;
+word-wrap:break-word;
+}
+
+div.isparent div {
+overflow:hidden;
+}
+
+div.isparent>span>span,div.isnotparent>span>span {
+color:#33D01E;
+}
+
+/* Row hover css */
+
+div.rowHover {
+background-color:#696969;
+}
+
+div.rowHover>span {
+height:inherit;
+}
+
+div.isnotparent.rowHover>span {
+white-space:normal;
+}
+
+/* Row header icons css */
+
+div>span>span>a>img {
+padding-left:5px;
+margin-top:2px;
+visibility:hidden;
+position:absolute;
+}
+
+div.rowHover>span>span>a>img {
+visibility:visible;
+}
+
+/* Tooltip */
+
+div#tooltip {
+color: #000;
+}

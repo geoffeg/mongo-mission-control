@@ -1,56 +1,61 @@
 <HTML>
 <HEAD>
-	<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
-	<script type="text/javascript" src="js/sprintf.js"></script>
-	<script type="text/javascript" src="js/handlebars.js"></script>
-	<script type="text/javascript" src="js/mmc.js"></script>
-	<script type="text/javascript" src="js/jquery.qtip/jquery.qtip.min.js"></script>
+	<title>Mongo Mission Control</title>
+	<script type="text/javascript" src="js/jquery/jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="js/jquery/jquery-ui-1.8.20.custom.min.js"></script>
+	<script type="text/javascript" src="js/jquery/jquery.qtip/jquery.qtip.min.js"></script>
+	
+	<script type="text/javascript" src="js/tooltips/jquery.tooltip.pack.js"></script>
 
-	<link type="text/css" rel="stylesheet" href="js/jquery.qtip/jquery.qtip.min.css"/>
-	<style>
-		BODY { color: white; font-family: "Inconsolata", monospace; background: black; margin: 0px; }
-		.header-parent { color: #33D01E;}
-		#mongo-set-selector TD { text-align: center; color: #999 }
-		#mongo-set-selector TD.selected-cell { background: #444; color: #FFF }
-		#mongo-set-selector TD:hover { background: #666 }
-		
-		#mongo-stats-header { position: fixed; background: black; z-index: 10; }
-		.host-header { display: inline; float: left; word-wrap: break-word; text-align: center; position: absolute}
-		.host-column { display: inline; float: left; text-align: center; }
-		#mongo-status-table { position: relative; top: 60px; border: 1px solid white;}
-		.qtip-content { display: none; color: black }
-		#mongo-stats-column-labels { border-right: 1px solid white; padding: 0 5px; }
-	</style>
+	<script type="text/javascript" src="js/mmc.js"></script>
+	<script type="text/javascript" src="js/helpers/tableManager.js"></script>
+	<script type="text/javascript" src="js/helpers/hostsManager.js"></script>
+	<script type="text/javascript" src="js/helpers/hostEditor.js"></script>
+	<script type="text/javascript" src="js/helpers/preferences.js"></script>
+	<script type="text/javascript" src="js/helpers/messenger.js"></script>
+	
+	<script type="text/javascript" src="saveData.js"></script>
+
+	<style id="rowExpandStyle">div.isnotparent>span {height:18px; white-space:nowrap;}</style>
+	<style id="centerColumnsStyle"></style>
+	
+	<link type="text/css" rel="stylesheet" href="css/mmc.css" />
+	<link type="text/css" rel="stylesheet" href="js/jquery/jquery.qtip/jquery.qtip.min.css" />
+	<link type="text/css" rel="stylesheet" href="css/ui-lightness/jquery-ui-1.8.20.custom.css" />
+	<link type="text/css" rel="stylesheet" href="js/tooltips/jquery.tooltip.css" />
 
 	<script language="javascript">
-		var workers = Array();
-		var template = false;
-		$(document).ready(function() {
-			$(window).resize(function() {
-				calculateColumnWidths();
-			});
-
-			$.get('pages/stats.html', function(data) {
-				$("BODY").append(data);
-				template = Handlebars.compile($('#statusTemplate').html());
-			});
-
-			var config = {host: "localhost", replicaSet: false};
-
-			workers["localhost"] = addServer(config);
-
-			for (var worker in workers) {
-				workers[worker].postMessage(JSON.stringify({
-					action: 'serverStatus',
-					args: []
-				}));
-			}
-		});
-
-
+		var mmc;// Only global variable. Completely object oriented! :)
+		$(document).ready(function() { mmc=new Mmc(data); });
 	</script>
 </HEAD>
 
 <BODY>
+	<div class="dropdownContainer">
+		<span style="float:left; width:10%;">&nbsp;</span>
+		<span id="rowDropdownParent" class="dropdownParent"><div class="dropdownHeader">Rows</div>
+			<div class="dropdown">
+				<span onclick="mmc.expandRows();">Expand All</span>
+				<span onclick="mmc.collapseRows();">Collapse All</span>
+				<span onclick="mmc.restoreHidden();">Restore Hidden Rows</span>
+				<span onclick="mmc.restoreSorting();">Restore Original Sorting</span>
+			</div>
+		</span>
+		<span id="columnDropdownParent" class="dropdownParent"><div class="dropdownHeader">Columns</div>
+			<div class="dropdown">
+				<span onclick="mmc.reset();">Remove All Columns</span>
+			</div>
+		</span>
+		<span id="hostsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Hosts</div>
+			<div class="dropdown" id="hosts"></div>
+		</span>
+		<span id="prefsDropdownParent" class="dropdownParent"><div class="dropdownHeader">Preferences</div>
+			<div class="dropdown">
+				<span onclick="mmc.changeRefreshSpeed();">Change Refresh Speed</span>
+				<span onclick="mmc.openPreferences();">Edit Display Preferences</span>
+			</div>
+		</span>
+	</div>
+	<br /><br /><!-- Not a mistake; to separate the menu from the table. -->
 </BODY>
 </HTML>
