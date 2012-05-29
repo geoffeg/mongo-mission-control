@@ -40,7 +40,10 @@ function runCommand($command) {
 				$m->setSlaveOkay(true);
 				$resp = $m->stats->command(array('serverStatus' => 1));
 				$replSetStatus = $m->admin->command(array('replSetGetStatus' => 1));
-				$resp['MyState'] = $replSetStatus['myState'];
+				if (isset($replSetStatus['myState']))
+				{
+					$resp['MyState'] = $replSetStatus['myState'];
+				}
 			} catch (Exception $e) {
 				$resp=array('ok' => 'Caught Error','message' => $e->getMessage(),'line' => $m->line);
 			}

@@ -1,7 +1,7 @@
 var slowSpeed=500;
 
 // var hostName = false;
-var config = {hostname: '?'};
+var xconfig = {hostname: '?'};
 var actions = {
 	sum: function(a, b) {
 		log('Summing: ' + a + ' + ' + b);
@@ -175,21 +175,6 @@ function processData(data) {
 		} else if (data['MyState']==2 && data['opcountersRepl']) {
 			// Secondary
 			data['relevantOpcounters']=data['opcountersRepl'];
-		}
-	}
-}
-function toScientific(data) {
-	var val;
-	var de;// Data element
-	for (de in data) {
-		// Loop through each element of data
-		val=data[de];
-		if (val instanceof Object) {
-			// Object
-			toScientific(val);
-		} else if (val.toExponential && val && (val>=1e6 || val<=1e-3)) {
-			// Large or small value
-			data[de]=val.toExponential(2);
 		}
 	}
 }
